@@ -50,6 +50,25 @@ This app gates `/profile` behind Supabase Auth using Google as the OAuth provide
 
 New users are redirected to `/profile` after their first sign-in and prompted to fill in their name if it's missing. Signed-out visitors hitting `/profile` are redirected to `/login`.
 
+## Morningside Memes (AI captions + voting)
+
+Signed-in users upload a photo, pick a caption voice, and Gemini writes four captions. Everyone (signed in) votes them up or down; the feed shows the newest posts or the top posts of the week. A daily photo prompt rotates at midnight New York time, and each post has a shareable `/g/<id>` link with a link-preview image.
+
+Setup:
+
+1. **Run the migration** [`supabase/migrations/20261005000000_captions_votes_rls.sql`](supabase/migrations/20261005000000_captions_votes_rls.sql) in the Supabase SQL Editor. It creates `generations` (photo + the exact prompt and model used), `captions`, and `caption_votes` (one row per user per caption, with a trigger that keeps the tallies on `captions`), the `generations` storage bucket, and turns on RLS for every table in `public`.
+2. **Get a Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey) and add it as `GEMINI_API_KEY` in `.env.local` and in Vercel (Settings → Environment Variables). Optionally set `GEMINI_MODEL` (defaults to `gemini-flash-latest`).
+
+RLS summary:
+
+| Table | Read | Write |
+| --- | --- | --- |
+| `profiles` | own row | update own row (insert via signup trigger) |
+| `movies` | everyone | none |
+| `generations` | everyone | insert as yourself |
+| `captions` | everyone | insert on your own generations; tallies only via trigger |
+| `caption_votes` | own votes | insert / update / delete own votes |
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

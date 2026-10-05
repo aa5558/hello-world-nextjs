@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
 
-const PROTECTED_PATHS = ["/profile"];
+const PROTECTED_PATHS = ["/profile", "/create"];
 
 // Refreshes the Supabase session cookie on every request and gates
 // protected routes before they render. Called from proxy.ts.

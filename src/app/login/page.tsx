@@ -19,7 +19,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    redirect(next ?? "/profile");
+    redirect(next || "/");
   }
 
   return (
