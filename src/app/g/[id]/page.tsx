@@ -29,7 +29,7 @@ export async function generateMetadata(
   const title = generation.captions[0]?.text ?? "Morningside Memes";
   return {
     title,
-    description: "Vote on the best AI caption.",
+    description: "Human or AI? Vote on the funniest caption and find out who wrote it.",
     openGraph: { title, images: [generation.imageUrl] },
   };
 }
@@ -46,14 +46,18 @@ export default async function GenerationPage(props: PageProps<"/g/[id]">) {
   if (!generation) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-4 p-6">
-      <Link href="/" className="text-sm underline">
-        ← Back to feed
+    <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-6">
+      <Link href="/" className="text-sm font-medium text-navy hover:underline dark:text-columbia">
+        ← All battles
       </Link>
-      <GenerationCard generation={generation} currentUserId={user?.id} />
+      <GenerationCard
+        generation={generation}
+        currentUserId={user?.id}
+        captionForm="open"
+      />
       {generation.userId === user?.id && (
         <p className="text-center text-sm text-black/60 dark:text-white/60">
-          Send this link to your friends to get votes.
+          Send this link to your friends. Can they out-write Gemini?
         </p>
       )}
     </main>

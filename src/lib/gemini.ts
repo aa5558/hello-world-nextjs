@@ -77,3 +77,75 @@ export async function generateCaptionsWithGemini({
 
   return { captions, model: body.modelVersion ?? GEMINI_MODEL };
 }
+
+const GEMINI_IMAGE_MODEL =
+  process.env.GEMINI_IMAGE_MODEL ?? "gemini-2.5-flash-image";
+
+type GeminiImageResponse = {
+  candidates?: {
+    content?: {
+      parts?: { text?: string; inlineData?: { mimeType?: string; data?: string } }[];
+    };
+  }[];
+  modelVersion?: string;
+  error?: { message?: string };
+};
+
+// Thrown when the Gemini project can't generate images at all (e.g. the
+// free tier has no image quota), as opposed to a one-off failure.
+export class ImageGenerationUnavailableError extends Error {}
+
+// Generates a photo from a text prompt with Gemini's image model.
+export async function generateImageWithGemini(
+  prompt: string
+): Promise<{ image: ArrayBuffer; mimeType: string; model: string }> {
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not set.");
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `Create a realistic, candid, phone-camera-style photo of: ${prompt}. Square framing. No text, captions, or watermarks in the image.`,
+              },
+            ],
+          },
+        ],
+        generationConfig: { responseModalities: ["IMAGE"] },
+      }),
+    }
+  );
+
+  const body = (await response.json()) as GeminiImageResponse;
+
+  if (response.status === 429 || response.status === 403 || response.status === 404) {
+    throw new ImageGenerationUnavailableError(
+      body.error?.message ?? `Gemini returned ${response.status}`
+    );
+  }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? `Gemini returned ${response.status}`);
+  }
+
+  const part = body.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
+  if (!part?.inlineData?.data) {
+    throw new Error("Gemini returned no image.");
+  }
+
+  const bytes = Buffer.from(part.inlineData.data, "base64");
+  return {
+    image: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    mimeType: part.inlineData.mimeType ?? "image/png",
+    model: body.modelVersion ?? GEMINI_IMAGE_MODEL,
+  };
+}

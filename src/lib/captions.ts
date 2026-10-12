@@ -47,31 +47,83 @@ const DAILY_PROMPTS = [
   "Your weekend adventure, in one photo",
 ];
 
-// The prompt changes at midnight New York time, so everyone on campus sees
-// the same one on the same day.
-export function getDailyPrompt(date = new Date()) {
-  const nyDate = new Intl.DateTimeFormat("en-CA", {
+// Human captions are capped well below the 300-character AI limit; the
+// database allows up to 200.
+export const HUMAN_CAPTION_MAX = 150;
+
+// Longest description a user can give for an AI-generated photo.
+export const IMAGE_PROMPT_MAX = 200;
+
+// Ideas for the "Generate with AI" photo option.
+export const IMAGE_PROMPT_IDEAS = [
+  "A raccoon pulling an all-nighter in Butler Library",
+  "Alma Mater statue wearing a giant puffer jacket",
+  "A pigeon cutting the line at Joe Coffee",
+  "Low Steps covered in rubber ducks",
+  "A squirrel giving a Lit Hum seminar",
+  "The 1 train full of golden retrievers",
+];
+
+// The New York calendar day ("YYYY-MM-DD") for a moment in time. The daily
+// challenge rolls over at midnight New York time, so everyone on campus is
+// on the same day. Matches generations.challenge_date in the database.
+export function getChallengeDate(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/New_York",
   }).format(date);
-  const dayNumber = Math.floor(Date.parse(nyDate) / 86_400_000);
+}
+
+// The challenge day `days` away from `day` (negative for earlier days).
+export function shiftDay(day: string, days: number) {
+  return new Date(Date.parse(day) + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+// The photo prompt for a challenge day; defaults to today.
+export function getDailyPrompt(day = getChallengeDate()) {
+  const dayNumber = Math.floor(Date.parse(day) / 86_400_000);
   return DAILY_PROMPTS[dayNumber % DAILY_PROMPTS.length];
+}
+
+// Milliseconds until the next challenge starts (midnight New York time).
+export function msUntilNextChallenge(now = new Date()) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      hourCycle: "h23",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    })
+      .formatToParts(now)
+      .map((part) => [part.type, Number(part.value)])
+  );
+  const elapsed = (parts.hour * 3600 + parts.minute * 60 + parts.second) * 1000;
+  return 86_400_000 - elapsed;
 }
 
 export function buildCaptionPrompt({
   vibe,
   context,
   dailyPrompt,
+  imagePrompt = null,
 }: {
   vibe: Vibe;
   context: string | null;
   dailyPrompt: string;
+  // Set when the photo itself was AI-generated from this description.
+  imagePrompt?: string | null;
 }) {
   return [
     "You write captions for photos posted by Columbia University students on a caption-voting app. The funniest captions get upvoted.",
     `Voice: ${VIBES[vibe].description}.`,
     context ? `The poster added this context: "${context}"` : null,
+    imagePrompt
+      ? `This image was AI-generated from the description "${imagePrompt}". Caption it as if it were a real photo.`
+      : null,
     `Today's photo prompt is "${dailyPrompt}". Lean into it if the photo fits, but don't force it.`,
-    "Write 4 different captions for this photo. Each one must be under 140 characters, refer to something actually in the photo, and take a different comedic angle. Be funny, not mean: never mock a real person's appearance. No hashtags.",
+    "Write 4 different captions for this photo. Each one must be under 140 characters, refer to something actually in the photo, and take a different comedic angle. Be funny, not mean: never mock a real person's appearance. No hashtags. Your captions will compete head-to-head against captions written by real students, so make them sound like something a student would actually post.",
     "Return only a JSON array of 4 strings.",
   ]
     .filter(Boolean)

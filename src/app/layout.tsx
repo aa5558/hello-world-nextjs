@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { NavBar } from "@/app/components/NavBar";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -15,9 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Morningside Memes",
+  title: "Morningside Memes — Humans vs. AI",
   description:
-    "Post a photo, get AI captions, and vote on the funniest ones on campus.",
+    "Can Columbia students be funnier than AI? Caption photos, vote blind, and find out who wrote it.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0b2d5b",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -31,22 +35,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <header className="sticky top-0 z-10 border-b border-black/10 bg-background/90 backdrop-blur dark:border-white/15">
-          <div className="mx-auto flex max-w-xl items-center justify-between px-6 py-3">
-            <Link href="/" className="font-semibold">
-              Morningside Memes
-            </Link>
-            <nav className="flex items-center gap-4 text-sm">
-              <Link href={user ? "/create" : "/login?next=/create"}>Post</Link>
-              {user ? (
-                <Link href="/profile">Profile</Link>
-              ) : (
-                <Link href="/login">Sign in</Link>
-              )}
-            </nav>
-          </div>
-        </header>
+      <body className="flex min-h-full flex-col pb-20 sm:pb-0">
+        <NavBar signedIn={Boolean(user)} />
         {children}
       </body>
     </html>

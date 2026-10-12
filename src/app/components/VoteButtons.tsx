@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
 import { castVote } from "@/app/votes/actions";
+import type { Reveal } from "@/lib/feed";
 
 type VoteState = { upvotes: number; downvotes: number; vote: -1 | 0 | 1 };
 
@@ -16,18 +17,26 @@ function applyVote(state: VoteState, vote: -1 | 0 | 1): VoteState {
   };
 }
 
+const ARROW =
+  "flex h-9 w-10 items-center justify-center rounded-lg text-lg transition active:scale-90 disabled:cursor-not-allowed";
+
 export function VoteButtons({
   captionId,
   upvotes,
   downvotes,
   myVote,
   signedIn,
+  locked = false,
+  onReveal,
 }: {
   captionId: string;
   upvotes: number;
   downvotes: number;
   myVote: -1 | 0 | 1;
   signedIn: boolean;
+  // The viewer's own caption: show the score but don't allow voting.
+  locked?: boolean;
+  onReveal?: (reveal: Reveal) => void;
 }) {
   const pathname = usePathname();
   const [state, setState] = useState<VoteState>({
@@ -45,13 +54,27 @@ export function VoteButtons({
       <Link
         href={`/login?next=${encodeURIComponent(pathname)}`}
         title="Sign in to vote"
-        className="flex w-12 shrink-0 flex-col items-center text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"
+        className="flex w-10 shrink-0 flex-col items-center text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"
       >
-        <span aria-hidden>▲</span>
-        <span className="text-sm font-semibold tabular-nums">{score}</span>
-        <span aria-hidden>▼</span>
+        <span aria-hidden className="text-lg">▲</span>
+        <span className="text-sm font-bold tabular-nums">{score}</span>
+        <span aria-hidden className="text-lg">▼</span>
         <span className="sr-only">Sign in to vote</span>
       </Link>
+    );
+  }
+
+  if (locked) {
+    return (
+      <div
+        title="You can't vote on your own caption"
+        className="flex w-10 shrink-0 flex-col items-center justify-center gap-0.5 text-black/40 dark:text-white/40"
+      >
+        <span className="text-sm font-bold tabular-nums text-foreground">
+          {score}
+        </span>
+        <span className="text-[10px] leading-none">votes</span>
+      </div>
     );
   }
 
@@ -68,30 +91,34 @@ export function VoteButtons({
         setError(result.error);
       } else {
         setState(result);
+        if (result.reveal) onReveal?.(result.reveal);
       }
     });
   }
 
   return (
-    <div className="flex w-12 shrink-0 flex-col items-center">
+    <div className="flex w-10 shrink-0 flex-col items-center">
       <button
         type="button"
         onClick={() => vote(1)}
         disabled={pending}
         aria-pressed={state.vote === 1}
         aria-label="Upvote"
-        className={`rounded px-2 hover:bg-black/5 dark:hover:bg-white/10 ${
-          state.vote === 1 ? "text-orange-600" : "text-black/40 dark:text-white/40"
+        className={`${ARROW} ${
+          state.vote === 1
+            ? "bg-orange-100 text-orange-600 dark:bg-orange-500/20"
+            : "text-black/35 hover:bg-black/5 dark:text-white/40 dark:hover:bg-white/10"
         }`}
       >
         ▲
       </button>
       <span
-        className={`text-sm font-semibold tabular-nums ${
+        aria-live="polite"
+        className={`text-sm font-bold tabular-nums ${
           state.vote === 1
             ? "text-orange-600"
             : state.vote === -1
-              ? "text-indigo-600"
+              ? "text-indigo-600 dark:text-indigo-400"
               : ""
         }`}
       >
@@ -103,14 +130,16 @@ export function VoteButtons({
         disabled={pending}
         aria-pressed={state.vote === -1}
         aria-label="Downvote"
-        className={`rounded px-2 hover:bg-black/5 dark:hover:bg-white/10 ${
-          state.vote === -1 ? "text-indigo-600" : "text-black/40 dark:text-white/40"
+        className={`${ARROW} ${
+          state.vote === -1
+            ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400"
+            : "text-black/35 hover:bg-black/5 dark:text-white/40 dark:hover:bg-white/10"
         }`}
       >
         ▼
       </button>
       {error && (
-        <span role="alert" className="mt-1 text-center text-[10px] text-red-600">
+        <span role="alert" className="mt-1 w-20 text-center text-[10px] text-red-600">
           {error}
         </span>
       )}
