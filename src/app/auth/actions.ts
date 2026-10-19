@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { safeNext } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
 
 async function getSiteURL() {
@@ -14,13 +15,13 @@ async function getSiteURL() {
 }
 
 export async function signInWithGoogle(formData: FormData) {
-  const next = formData.get("next")?.toString();
+  const next = safeNext(formData.get("next"));
 
   const supabase = await createClient();
   const siteURL = await getSiteURL();
 
   const redirectTo = new URL("/auth/callback", siteURL);
-  if (next) redirectTo.searchParams.set("next", next);
+  if (next !== "/") redirectTo.searchParams.set("next", next);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

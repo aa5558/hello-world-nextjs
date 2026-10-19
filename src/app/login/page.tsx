@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signInWithGoogle } from "@/app/auth/actions";
+import { safeNext } from "@/lib/redirect";
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth: "We couldn't sign you in. Please try again.",
@@ -10,7 +11,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 export default async function LoginPage(props: PageProps<"/login">) {
   const searchParams = await props.searchParams;
-  const next = typeof searchParams.next === "string" ? searchParams.next : undefined;
+  const next = safeNext(searchParams.next);
   const error = typeof searchParams.error === "string" ? searchParams.error : undefined;
 
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    redirect(next || "/");
+    redirect(next);
   }
 
   return (
@@ -31,7 +32,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
         </p>
       )}
       <form action={signInWithGoogle}>
-        <input type="hidden" name="next" value={next ?? ""} />
+        <input type="hidden" name="next" value={next} />
         <button
           type="submit"
           className="flex items-center gap-2 rounded-md border border-black/10 bg-white px-4 py-2 font-medium text-black shadow-sm hover:bg-black/5"
