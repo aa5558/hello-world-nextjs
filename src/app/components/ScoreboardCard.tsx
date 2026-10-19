@@ -10,43 +10,40 @@ export function ScoreboardCard({ scoreboard }: { scoreboard: Scoreboard }) {
     battles === 0
       ? "No humans have entered yet. Be the first to take on Gemini."
       : humanWins > aiWins
-        ? "Columbia is winning. For now."
+        ? "The people have spoken: humans are winning. For now."
         : aiWins > humanWins
-          ? "Gemini is ahead. Humanity needs you."
-          : "Dead even. Your vote could decide it.";
+          ? "Gemini is ahead. Humanity needs you 💀"
+          : "Dead even. Your vote decides it.";
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-      <div className="flex items-end justify-between">
+    <div className="card relative overflow-hidden p-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-ice/50 blur-3xl"
+      />
+      <p className="eyebrow">the scoreboard · all time</p>
+      <div className="relative mt-4 grid grid-cols-[1fr_auto_1fr] items-end gap-3">
         <div className="flex flex-col">
-          <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-            🧑‍🎓 Humans
-          </span>
-          <span className="text-3xl font-black tabular-nums">{humanWins}</span>
+          <span className="text-sm font-semibold text-human-ink">🧑‍🎓 Humans</span>
+          <span className="display text-6xl tabular-nums text-ink sm:text-7xl">{humanWins}</span>
         </div>
-        <span className="pb-1 text-sm font-semibold text-black/40 dark:text-white/40">
-          vs
-        </span>
+        <span className="serif pb-3 text-3xl text-ink-3">vs</span>
         <div className="flex flex-col items-end">
-          <span className="text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">
-            Gemini 🤖
-          </span>
-          <span className="text-3xl font-black tabular-nums">{aiWins}</span>
+          <span className="text-sm font-semibold text-ai-ink">Gemini 🤖</span>
+          <span className="display text-6xl tabular-nums text-ink sm:text-7xl">{aiWins}</span>
         </div>
       </div>
       <div
-        className="flex h-2.5 overflow-hidden rounded-full bg-violet-500"
+        className="relative mt-5 flex h-3 gap-[3px] overflow-hidden rounded-full"
         role="img"
         aria-label={`Humans have won ${humanWins} battles, Gemini ${aiWins}`}
       >
-        <div
-          className="bg-emerald-500 transition-all"
-          style={{ width: `${humanShare}%` }}
-        />
+        <div className="rounded-l-full bg-human transition-all duration-700" style={{ width: `${humanShare}%` }} />
+        <div className="flex-1 rounded-r-full bg-ai" />
       </div>
-      <p className="text-sm text-black/60 dark:text-white/60">
+      <p className="relative mt-4 text-[15px] text-ink">
         {verdict}{" "}
-        <span className="text-black/40 dark:text-white/40">
+        <span className="text-ink-3">
           ({battles} {battles === 1 ? "photo" : "photos"} with human challengers)
         </span>
       </p>

@@ -22,12 +22,12 @@ export function AddCaptionForm({ generationId }: { generationId: string }) {
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    <form action={formAction} className="flex flex-col gap-2.5">
       <input type="hidden" name="generation_id" value={generationId} />
-      <label htmlFor={`caption-${generationId}`} className="text-sm font-semibold">
-        Think you&apos;re funnier than Gemini?
+      <label htmlFor={`caption-${generationId}`} className="display text-lg">
+        think you&apos;re funnier than <span className="serif text-xl">Gemini?</span>
       </label>
-      <div className="flex gap-2">
+      <div className="flex gap-2 rounded-full bg-white p-1.5 shadow-[inset_0_0_0_1px_rgba(22,38,61,0.1)] focus-within:shadow-[inset_0_0_0_1px_#69b5ff,0_0_0_4px_rgba(105,181,255,0.25)]">
         <input
           id={`caption-${generationId}`}
           name="text"
@@ -36,29 +36,29 @@ export function AddCaptionForm({ generationId }: { generationId: string }) {
           maxLength={HUMAN_CAPTION_MAX}
           required
           autoComplete="off"
-          placeholder="Write your caption…"
-          className="min-w-0 flex-1 rounded-xl border border-black/15 bg-surface px-3 py-2.5 text-[15px] outline-none focus:border-navy focus:ring-2 focus:ring-columbia dark:border-white/20 dark:focus:border-columbia"
+          placeholder="your caption goes here…"
+          className="min-w-0 flex-1 bg-transparent px-3 text-[15px] outline-none placeholder:text-ink-3"
         />
         <button
           type="submit"
           disabled={pending || text.trim().length === 0}
-          className="shrink-0 rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-40 dark:bg-columbia dark:text-navy"
+          className="btn btn-primary btn-sm shrink-0"
         >
           {pending ? "Posting…" : "Post"}
         </button>
       </div>
-      <div className="flex justify-between text-xs text-black/50 dark:text-white/50">
+      <div className="flex justify-between gap-3 px-2 text-xs text-ink-3">
         <span>
           {state.error ? (
-            <span role="alert" className="text-red-600">
+            <span role="alert" className="text-down-ink">
               {state.error}
             </span>
           ) : state.success ? (
-            <span className="text-emerald-700 dark:text-emerald-400">
-              You&apos;re in the battle! Others will vote without knowing it&apos;s you.
+            <span className="font-medium text-human-ink">
+              you&apos;re in the ring 🥊 people vote without knowing it&apos;s you.
             </span>
           ) : (
-            "It'll be mixed in with the AI captions, anonymously."
+            "It gets mixed in with the AI captions, anonymously."
           )}
         </span>
         <span className="tabular-nums">

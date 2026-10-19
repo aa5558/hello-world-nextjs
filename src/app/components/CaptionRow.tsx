@@ -35,23 +35,23 @@ export function CaptionRow({
 
   const tint =
     reveal?.authorType === "human"
-      ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-500/25 dark:bg-emerald-500/5"
+      ? "bg-human-soft/70 ring-human/25"
       : reveal?.authorType === "ai"
-        ? "border-violet-200 bg-violet-50/60 dark:border-violet-500/25 dark:bg-violet-500/5"
-        : "border-black/5 bg-black/[0.025] dark:border-white/10 dark:bg-white/5";
+        ? "bg-ai-soft/70 ring-ai/25"
+        : "bg-background ring-line";
 
   if (deleted) return null;
 
   return (
-    <li className={`flex items-center gap-2 rounded-xl border p-2 transition-colors ${tint}`}>
+    <li className={`flex items-center gap-3 rounded-[22px] p-2 pr-3 ring-1 transition-colors duration-500 ${tint}`}>
       {rank !== undefined && (
         <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+          className={`display flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm ${
             rank === 1
-              ? "bg-amber-400 text-amber-950"
+              ? "bg-butter text-butter-ink shadow-[inset_0_1px_0_#fff,0_6px_14px_-8px_rgba(122,86,0,0.6)]"
               : rank <= 3
-                ? "bg-columbia text-navy"
-                : "bg-black/5 text-black/60 dark:bg-white/10 dark:text-white/60"
+                ? "orb text-ink"
+                : "bg-white text-ink-3 ring-1 ring-line"
           }`}
         >
           {rank}
@@ -67,8 +67,8 @@ export function CaptionRow({
         locked={reveal?.isMine}
         onReveal={handleReveal}
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="text-[15px] leading-snug break-words">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 py-1">
+        <p className="break-words text-[15.5px] font-medium leading-snug text-ink">
           {leading && caption.score > 0 && (
             <span className="mr-1" title="Top caption">
               👑

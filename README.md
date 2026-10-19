@@ -92,6 +92,14 @@ Who wrote a caption (`author_type`, `user_id`) is never readable directly. These
 | `delete_human_caption(id)` | signed in | delete your own human caption |
 | `guess_round(exclude)` / `check_guess(id, guess)` | everyone | the guessing game; only uses captions from *finished* challenge days |
 
+## Design
+
+Light-only brand system in [`src/app/globals.css`](src/app/globals.css): icy baby blue `#B8DCFF`, powder `#E3F2FF`, sky `#69B5FF`, navy ink `#16263D` on `#F8FCFF`. Headlines use Bricolage Grotesque with one Instrument Serif italic word; body text is Geist. Shared classes: `.btn` (glossy pills), `.card`, `.glass`, `.chip`, `.field`, `.orb` (the 3D bubble logo and Post button). Humans are blue `#3D8FF0` and Gemini is bubblegum `#E5539A`; both were checked for color-blind separation and contrast. Motion respects `prefers-reduced-motion`.
+
+## Tests
+
+`npm test` runs Playwright against a production build (`npm run build` first) and a local Supabase stand-in from the admin repo ([`morningside-memes-admin/tests/mock`](https://github.com/aa5558/morningside-memes-admin/tree/main/tests/mock)). The stand-in runs this repo's migrations with RLS on PGlite. The tests cover browsing signed out, the Human or AI? game, voting and the author reveal, adding/editing/deleting your own caption, deleting your own post, the profile form, posting with Gemini (when `GEMINI_API_KEY` is set), and no horizontal scrolling on phones. They expect the admin repo checked out next to this one (or `MOCK_DIR`).
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

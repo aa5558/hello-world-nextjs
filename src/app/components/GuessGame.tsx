@@ -59,28 +59,34 @@ export function GuessGame({
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-lg font-bold">🎯 Human or AI?</h2>
+    <section id="guess" className="card flex scroll-mt-24 flex-col gap-4 p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="eyebrow">mini game · no account needed</p>
+          <h2 className="display mt-1 text-3xl">
+            Human or <span className="serif text-4xl">AI?</span>
+          </h2>
+        </div>
         {tally.played > 0 && (
-          <span className="text-xs font-semibold tabular-nums text-black/55 dark:text-white/55">
+          <span className="chip shrink-0 bg-powder tabular-nums text-ink">
             {tally.correct}/{tally.played} right
-            {streak >= 2 && ` · 🔥 ${streak} streak`}
+            {streak >= 2 && ` · 🔥 ${streak}`}
           </span>
         )}
       </div>
-      <p className="-mt-2 text-sm text-black/60 dark:text-white/60">
+      <p className="-mt-2 text-sm text-ink-2">
         A caption from a past battle. Did a classmate write it, or Gemini?
       </p>
 
-      <div className="flex gap-3">
+      <div className="flex items-center gap-4 rounded-[22px] bg-background p-3 ring-1 ring-line">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          key={round.captionId}
           src={round.imageUrl}
           alt="Photo for this caption"
-          className="h-24 w-24 shrink-0 rounded-xl object-cover"
+          className="animate-pop h-24 w-24 shrink-0 rounded-2xl object-cover sm:h-28 sm:w-28"
         />
-        <p className="self-center text-[15px] font-medium leading-snug">
+        <p key={`t-${round.captionId}`} className="animate-fade-up text-[17px] font-medium leading-snug text-ink">
           “{round.text}”
         </p>
       </div>
@@ -88,14 +94,12 @@ export function GuessGame({
       {result ? (
         <div className="flex flex-col gap-3">
           <div
-            className={`animate-reveal flex flex-wrap items-center gap-2 rounded-xl p-3 text-sm font-semibold ${
-              result.correct
-                ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-200"
-                : "bg-red-50 text-red-900 dark:bg-red-500/10 dark:text-red-200"
+            className={`animate-reveal flex flex-wrap items-center gap-2 rounded-[22px] p-4 text-sm font-semibold ${
+              result.correct ? "bg-human-soft text-ink" : "bg-down-soft text-ink"
             }`}
           >
-            <span>{result.correct ? "✅ Correct!" : "❌ Nope."}</span>
-            <span className="font-normal">Written by</span>
+            <span className="display text-lg">{result.correct ? "called it ✅" : "nope, fooled you ❌"}</span>
+            <span className="font-normal text-ink-2">written by</span>
             <RevealBadge
               reveal={{
                 authorType: result.authorType,
@@ -103,30 +107,22 @@ export function GuessGame({
                 isMine: false,
               }}
             />
-            <span className="font-normal text-black/50 dark:text-white/50">
+            <span className="font-normal text-ink-2">
               · {result.score > 0 ? `+${result.score}` : result.score} votes
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={next}
-              disabled={pending}
-              className="rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-columbia dark:text-navy"
-            >
+            <button type="button" onClick={next} disabled={pending} className="btn btn-primary">
               {pending ? "Loading…" : "Next caption →"}
             </button>
-            <Link
-              href={`/g/${round.generationId}`}
-              className="text-sm font-medium text-navy hover:underline dark:text-columbia"
-            >
+            <Link href={`/g/${round.generationId}`} className="btn btn-ghost">
               See the full battle
             </Link>
           </div>
           {!signedIn && tally.played >= 2 && (
-            <p className="rounded-xl bg-columbia/40 p-3 text-sm text-navy dark:bg-columbia/15 dark:text-columbia">
+            <p className="rounded-[22px] bg-powder p-4 text-sm text-ink">
               Think you could write a better one?{" "}
-              <Link href="/login" className="font-semibold underline">
+              <Link href="/login" className="font-semibold underline underline-offset-2">
                 Sign in with Google
               </Link>{" "}
               to vote on today&apos;s battles and enter your own captions.
@@ -134,21 +130,11 @@ export function GuessGame({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => guess("human")}
-            disabled={pending}
-            className="rounded-xl bg-emerald-600 px-3 py-3 font-semibold text-white transition active:scale-95 disabled:opacity-50"
-          >
+        <div className="grid grid-cols-2 gap-3">
+          <button type="button" onClick={() => guess("human")} disabled={pending} className="btn btn-human btn-lg">
             🧑‍🎓 Human
           </button>
-          <button
-            type="button"
-            onClick={() => guess("ai")}
-            disabled={pending}
-            className="rounded-xl bg-violet-600 px-3 py-3 font-semibold text-white transition active:scale-95 disabled:opacity-50"
-          >
+          <button type="button" onClick={() => guess("ai")} disabled={pending} className="btn btn-ai btn-lg">
             🤖 AI
           </button>
         </div>

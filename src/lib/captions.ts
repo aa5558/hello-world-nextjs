@@ -26,6 +26,14 @@ export const VIBES = {
 
 export type Vibe = keyof typeof VIBES;
 
+// The emoji shown next to each voice in the UI.
+export const VIBE_EMOJI: Record<string, string> = {
+  midwest: "🌽",
+  online: "📱",
+  columbia: "🦁",
+  newyorker: "🗽",
+};
+
 export function isVibe(value: unknown): value is Vibe {
   return typeof value === "string" && value in VIBES;
 }

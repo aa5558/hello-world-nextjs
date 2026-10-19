@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CaptionRow } from "@/app/components/CaptionRow";
 import { Countdown } from "@/app/components/Countdown";
+import { Icon } from "@/app/components/Icon";
+import { EmptyCard } from "@/app/components/PageHero";
 import { RevealBadge } from "@/app/components/RevealBadge";
 import { getDailyWinner, getLeaderboard } from "@/lib/battles";
 import {
@@ -39,162 +41,176 @@ export default async function ChallengePage() {
   const postHref = user ? "/create" : "/login?next=/create";
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-6">
-      <section className="relative flex flex-col gap-3 overflow-hidden rounded-2xl bg-navy p-6 text-white shadow-md">
-        <span className="absolute -right-4 -top-6 text-9xl opacity-10" aria-hidden>
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-8 sm:px-6 sm:pt-12">
+      {/* Today's prompt */}
+      <section className="animate-fade-up relative overflow-hidden rounded-[36px] bg-ice px-6 py-10 text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-12 sm:py-14">
+        <span aria-hidden className="absolute -right-10 -top-16 h-72 w-72 rounded-full bg-white/50 blur-3xl" />
+        <span aria-hidden className="animate-float absolute bottom-6 right-8 hidden text-[8rem] leading-none sm:block">
           🏆
         </span>
-        <p className="text-xs font-bold uppercase tracking-widest text-columbia">
-          Daily caption challenge
-        </p>
-        <h1 className="text-3xl font-black leading-tight">{getDailyPrompt(today)}</h1>
-        <p className="text-sm text-white/75">
-          Post a photo for today&apos;s prompt, or caption someone else&apos;s.
-          The top-voted caption at midnight wins the day.
-        </p>
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <Link
-            href={postHref}
-            className="rounded-full bg-columbia px-4 py-2 text-sm font-semibold text-navy hover:bg-white"
-          >
-            📸 Post a photo
-          </Link>
-          <span className="text-sm text-white/75">
-            ⏳ <Countdown initialMs={msUntilNextChallenge()} /> left
-          </span>
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-bold">🏆 Yesterday&apos;s winner</h2>
-        {winner ? (
-          <Link
-            href={`/g/${winner.generationId}`}
-            className="flex gap-4 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 p-4 ring-1 ring-amber-300 transition hover:ring-amber-400 dark:from-amber-500/15 dark:to-amber-500/5 dark:ring-amber-500/40"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={winner.imageUrl}
-              alt=""
-              className="h-24 w-24 shrink-0 rounded-xl object-cover"
-            />
-            <div className="flex min-w-0 flex-col gap-2">
-              {winner.dailyPrompt && (
-                <p className="text-xs text-amber-900/70 dark:text-amber-200/70">
-                  “{winner.dailyPrompt}”
-                </p>
-              )}
-              <p className="font-semibold leading-snug">👑 {winner.text}</p>
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <RevealBadge
-                  reveal={{
-                    authorType: winner.authorType,
-                    authorName: winner.authorName,
-                    isMine: false,
-                  }}
-                />
-                <span className="font-semibold tabular-nums">
-                  +{winner.score} votes
-                </span>
-              </div>
-              <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-                {winner.authorType === "human"
-                  ? "A human beat the AI 🎉"
-                  : "The AI won this one. Get it back today."}
-              </p>
-            </div>
-          </Link>
-        ) : (
-          <p className="rounded-2xl bg-surface p-4 text-sm text-black/60 ring-1 ring-black/5 dark:text-white/60 dark:ring-white/10">
-            No winner yesterday. Nobody upvoted a caption in time. Don&apos;t
-            let that happen today.
+        <div className="relative flex max-w-3xl flex-col gap-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="chip bg-white/70 text-ink">daily caption challenge</span>
+            <span className="chip bg-ink text-white">
+              ⏳ <Countdown initialMs={msUntilNextChallenge()} /> left
+            </span>
+          </div>
+          <h1 className="display text-5xl sm:text-7xl">{getDailyPrompt(today)}</h1>
+          <p className="max-w-lg text-[17px] leading-relaxed text-ink-2">
+            Post a photo for today&apos;s prompt, or caption someone else&apos;s. The top-voted caption at
+            midnight wins the day.
           </p>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-bold">📊 Today&apos;s leaderboard</h2>
-          <span className="text-xs text-black/50 dark:text-white/50">
-            {entries.length} {entries.length === 1 ? "caption" : "captions"}
-          </span>
-        </div>
-        {error && <p className="text-red-600">Error loading the leaderboard: {error}</p>}
-        {!error && entries.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface p-8 text-center ring-1 ring-black/5 dark:ring-white/10">
-            <p className="text-black/60 dark:text-white/60">
-              No entries yet today. First photo gets everyone&apos;s attention.
-            </p>
-            <Link
-              href={postHref}
-              className="rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white dark:bg-columbia dark:text-navy"
-            >
-              Start today&apos;s challenge
+          <div className="flex flex-wrap gap-3">
+            <Link href={postHref} className="btn btn-primary btn-lg">
+              📸 Post a photo
             </Link>
-            <Link
-              href="/surprise"
-              className="text-sm font-semibold text-navy hover:underline dark:text-columbia"
-            >
-              No photo? 🎲 Caption a random one
+            <Link href="/surprise" className="btn btn-ghost btn-lg">
+              🎲 Caption a random one
             </Link>
           </div>
-        ) : (
-          <ol className="flex flex-col gap-2">
-            {entries.map((entry, index) => (
-              <CaptionRow
-                key={entry.id}
-                caption={entry}
-                signedIn={Boolean(user)}
-                rank={index + 1}
-                thumbnail={
-                  <Link href={`/g/${entry.generationId}`} className="shrink-0" title="Open photo">
+        </div>
+      </section>
+
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Leaderboard */}
+        <section className="flex min-w-0 flex-col gap-4">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="eyebrow">live</p>
+              <h2 className="display mt-1 text-4xl">
+                Today&apos;s <span className="serif">leaderboard</span>
+              </h2>
+            </div>
+            <span className="chip bg-powder text-ink">
+              {entries.length} {entries.length === 1 ? "caption" : "captions"}
+            </span>
+          </div>
+          {error && (
+            <p role="alert" className="rounded-[22px] bg-down-soft p-4 text-sm text-down-ink">
+              We couldn&apos;t load the leaderboard: {error}
+            </p>
+          )}
+          {!error && entries.length === 0 ? (
+            <EmptyCard
+              emoji="📸"
+              title="No entries yet today."
+              body="First photo gets everyone's attention. Just saying."
+            >
+              <Link href={postHref} className="btn btn-primary">
+                Start today&apos;s challenge
+              </Link>
+              <Link href="/surprise" className="btn btn-ghost">
+                🎲 Caption a random one
+              </Link>
+            </EmptyCard>
+          ) : (
+            <ol className="flex flex-col gap-2">
+              {entries.map((entry, index) => (
+                <CaptionRow
+                  key={entry.id}
+                  caption={entry}
+                  signedIn={Boolean(user)}
+                  rank={index + 1}
+                  thumbnail={
+                    <Link href={`/g/${entry.generationId}`} className="shrink-0" title="Open photo">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={entry.imageUrl}
+                        alt="Photo for this caption"
+                        loading="lazy"
+                        className="h-14 w-14 rounded-2xl object-cover transition hover:scale-105"
+                      />
+                    </Link>
+                  }
+                />
+              ))}
+            </ol>
+          )}
+        </section>
+
+        <aside className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
+          {/* Yesterday's winner */}
+          <section className="flex flex-col gap-3">
+            <h2 className="display text-3xl">
+              Yesterday&apos;s <span className="serif">champ</span>
+            </h2>
+            {winner ? (
+              <Link
+                href={`/g/${winner.generationId}`}
+                className="card lift group flex flex-col gap-4 overflow-hidden p-2"
+              >
+                <div className="relative overflow-hidden rounded-[22px] bg-powder">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={winner.imageUrl} alt="" className="aspect-[4/3] w-full object-cover" />
+                  <span className="chip absolute left-3 top-3 bg-butter text-butter-ink shadow-sm">🏆 winner</span>
+                </div>
+                <div className="flex flex-col gap-2 px-3 pb-3">
+                  {winner.dailyPrompt && <p className="text-xs text-ink-3">“{winner.dailyPrompt}”</p>}
+                  <p className="text-lg font-semibold leading-snug">👑 {winner.text}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <RevealBadge
+                      reveal={{
+                        authorType: winner.authorType,
+                        authorName: winner.authorName,
+                        isMine: false,
+                      }}
+                    />
+                    <span className="font-semibold tabular-nums">+{winner.score} votes</span>
+                  </div>
+                  <p className="text-sm font-medium text-ink-2">
+                    {winner.authorType === "human"
+                      ? "A human beat the AI 🎉"
+                      : "The AI won this one. Get it back today."}
+                  </p>
+                </div>
+              </Link>
+            ) : (
+              <p className="card p-5 text-sm text-ink-2">
+                No winner yesterday. Nobody upvoted a caption in time. Don&apos;t let that happen today.
+              </p>
+            )}
+          </section>
+
+          {photos.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="display text-3xl">
+                Caption <span className="serif">today&apos;s photos</span>
+              </h2>
+              <p className="text-sm text-ink-2">
+                Tap a photo to throw your caption into the battle, or{" "}
+                <Link href="/surprise" className="font-semibold text-ink underline underline-offset-2">
+                  roll a random one
+                </Link>
+                .
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {photos.map((photo) => (
+                  <Link
+                    key={photo.id}
+                    href={`/g/${photo.id}`}
+                    className="group relative aspect-square overflow-hidden rounded-2xl bg-powder"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={entry.imageUrl}
-                      alt="Photo for this caption"
+                      src={photo.imageUrl}
+                      alt={photo.context ?? "Today's photo"}
                       loading="lazy"
-                      className="h-14 w-14 rounded-lg object-cover"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
                     />
+                    <span className="chip glass absolute bottom-1.5 right-1.5 px-2 py-0.5 text-[10px] text-ink">
+                      {photo.captions.length} 💬
+                    </span>
                   </Link>
-                }
-              />
-            ))}
-          </ol>
-        )}
-      </section>
+                ))}
+              </div>
+            </section>
+          )}
 
-      {photos.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold">✍️ Caption today&apos;s photos</h2>
-          <p className="-mt-2 text-sm text-black/60 dark:text-white/60">
-            Tap a photo to throw your own caption into the battle, or{" "}
-            <Link href="/surprise" className="font-semibold text-navy hover:underline dark:text-columbia">
-              🎲 roll a random one
-            </Link>
-            .
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {photos.map((photo) => (
-              <Link
-                key={photo.id}
-                href={`/g/${photo.id}`}
-                className="group relative aspect-square overflow-hidden rounded-xl bg-black/5"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.imageUrl}
-                  alt={photo.context ?? "Today's photo"}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition group-hover:scale-105"
-                />
-                <span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {photo.captions.length} 💬
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+          <Link href={postHref} className="btn btn-ice self-start">
+            Enter today&apos;s challenge <Icon name="arrow" className="h-4 w-4" />
+          </Link>
+        </aside>
+      </div>
     </main>
   );
 }

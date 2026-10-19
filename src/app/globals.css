@@ -1,28 +1,59 @@
 @import "tailwindcss";
 
+/* The app is light-only by design; `dark:` only applies inside `.dark`, which
+   is never set. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #f6f8fb;
-  --foreground: #14213d;
+  --background: #f8fcff;
+  --foreground: #16263d;
   --surface: #ffffff;
 }
 
 @theme inline {
+  /* Brand palette */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
-  /* Columbia blue and a deep navy for accents. */
-  --color-columbia: #b9d9eb;
-  --color-navy: #0b2d5b;
+  --color-ice: #b8dcff;
+  --color-powder: #e3f2ff;
+  --color-sky: #69b5ff;
+  --color-ink: #16263d;
+  --color-ink-2: #4a5a72;
+  --color-ink-3: #7b889c;
+  --color-line: rgba(22, 38, 61, 0.08);
+  --color-sky-deep: #1f6fd1;
+
+  /* Humans vs. Gemini, and votes. Chart-validated pairs. */
+  --color-human: #3d8ff0;
+  --color-human-ink: #1f6fd1;
+  --color-human-soft: #e3f2ff;
+  --color-ai: #e5539a;
+  --color-ai-ink: #b42d72;
+  --color-ai-soft: #ffe8f3;
+  --color-down: #ec5b37;
+  --color-down-ink: #c2401f;
+  --color-down-soft: #ffede6;
+  --color-butter: #fff1c2;
+  --color-butter-ink: #7a5600;
+
+  /* Kept so older class names still resolve to the new brand. */
+  --color-navy: #16263d;
+  --color-columbia: #b8dcff;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage);
+  --font-serif: var(--font-instrument);
+
+  --animate-fade-up: fade-up 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-pop: pop 320ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-pulse-dot: pulse-dot 1.8s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0f1a;
-    --foreground: #e8edf5;
-    --surface: #121a2a;
-  }
+html {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -31,7 +62,231 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-@keyframes reveal-pop {
+/* Two soft icy glows behind everything: atmosphere, not a gradient. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38rem 26rem at 8% -6%, rgba(184, 220, 255, 0.55), transparent 70%),
+    radial-gradient(34rem 24rem at 100% 12%, rgba(227, 242, 255, 0.9), transparent 70%);
+}
+
+::selection {
+  background: #b8dcff;
+  color: #16263d;
+}
+
+@layer components {
+  .display {
+    font-family: var(--font-bricolage), system-ui, sans-serif;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    font-variation-settings: "wdth" 92;
+  }
+
+  /* One editorial word per headline, in an italic serif. */
+  .serif {
+    font-family: var(--font-instrument), Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-ink-2);
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid rgba(22, 38, 61, 0.06);
+    border-radius: 28px;
+    box-shadow:
+      0 1px 2px rgba(22, 38, 61, 0.04),
+      0 18px 40px -24px rgba(22, 38, 61, 0.18);
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 12px 32px -18px rgba(22, 38, 61, 0.28);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  }
+
+  /* Pill buttons with a glossy top highlight. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition:
+      transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 180ms ease,
+      background-color 180ms ease,
+      opacity 180ms ease;
+    padding: 0.7rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.97);
+  }
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+  .btn:focus-visible {
+    outline: 3px solid #69b5ff;
+    outline-offset: 2px;
+  }
+  .btn-sm {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8125rem;
+  }
+  .btn-lg {
+    padding: 0.95rem 1.6rem;
+    font-size: 1.0625rem;
+  }
+
+  .btn-primary {
+    color: #fff;
+    background: linear-gradient(180deg, #2b3f5e 0%, #16263d 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 10px 24px -12px rgba(22, 38, 61, 0.7);
+  }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 14px 30px -12px rgba(22, 38, 61, 0.75);
+  }
+
+  .btn-ice {
+    color: #16263d;
+    background: linear-gradient(180deg, #d6ecff 0%, #b8dcff 100%);
+    box-shadow:
+      inset 0 1px 0 #fff,
+      inset 0 -1px 0 rgba(22, 38, 61, 0.06),
+      0 10px 24px -12px rgba(105, 181, 255, 0.95);
+  }
+
+  .btn-ghost {
+    color: #16263d;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow:
+      inset 0 0 0 1px rgba(22, 38, 61, 0.1),
+      0 6px 16px -12px rgba(22, 38, 61, 0.3);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: #fff;
+  }
+
+  .btn-human {
+    color: #fff;
+    background: linear-gradient(180deg, #5aa3f5 0%, #2f80e4 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 10px 24px -12px rgba(61, 143, 240, 0.9);
+  }
+  .btn-ai {
+    color: #fff;
+    background: linear-gradient(180deg, #ef72ad 0%, #d9468c 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 10px 24px -12px rgba(229, 83, 154, 0.9);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 9999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .field {
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgba(22, 38, 61, 0.12);
+    background: #fff;
+    padding: 0.8rem 1rem;
+    font-size: 0.9375rem;
+    color: #16263d;
+    outline: none;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+  .field::placeholder {
+    color: #7b889c;
+  }
+  .field:focus {
+    border-color: #69b5ff;
+    box-shadow: 0 0 0 4px rgba(105, 181, 255, 0.25);
+  }
+
+  /* The glossy 3D bubble used for the logo and the Post button. */
+  .orb {
+    background:
+      radial-gradient(circle at 32% 26%, #ffffff 0%, rgba(255, 255, 255, 0) 38%),
+      radial-gradient(circle at 70% 80%, #69b5ff 0%, rgba(105, 181, 255, 0) 60%),
+      linear-gradient(160deg, #d9edff 0%, #a9d3ff 100%);
+    box-shadow:
+      inset 0 -3px 6px rgba(31, 111, 209, 0.25),
+      inset 0 2px 2px rgba(255, 255, 255, 0.9),
+      0 8px 18px -8px rgba(105, 181, 255, 0.95);
+  }
+
+  .skeleton {
+    border-radius: 1rem;
+    background: linear-gradient(90deg, #e9f4ff 0%, #f6fbff 50%, #e9f4ff 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+
+  .lift {
+    transition:
+      transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 220ms ease;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 1px 2px rgba(22, 38, 61, 0.04),
+      0 24px 48px -24px rgba(22, 38, 61, 0.28);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop {
   0% {
     transform: scale(0.6);
     opacity: 0;
@@ -45,12 +300,46 @@ body {
   }
 }
 
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(4deg);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(105, 181, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(105, 181, 255, 0);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Kept for RevealBadge. */
 .animate-reveal {
-  animation: reveal-pop 280ms ease-out;
+  animation: pop 320ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-reveal {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
   }
 }

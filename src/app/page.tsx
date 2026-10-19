@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Countdown } from "@/app/components/Countdown";
 import { GenerationCard } from "@/app/components/GenerationCard";
 import { GuessGame } from "@/app/components/GuessGame";
+import { Icon } from "@/app/components/Icon";
 import { ScoreboardCard } from "@/app/components/ScoreboardCard";
 import { getDailyWinner, getScoreboard } from "@/lib/battles";
 import {
@@ -17,8 +18,14 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 const TABS: { sort: FeedSort; label: string }[] = [
-  { sort: "new", label: "🆕 New" },
+  { sort: "new", label: "🆕 Fresh" },
   { sort: "top", label: "🔥 Top this week" },
+];
+
+const STEPS = [
+  { n: "01", title: "Drop a photo", body: "Anything from campus life. Dining hall plates count." },
+  { n: "02", title: "Let the AI cook", body: "Gemini writes four captions in the voice you pick." },
+  { n: "03", title: "Vote blind", body: "Humans and AI, mixed together. Vote to reveal who wrote what." },
 ];
 
 export default async function Home(props: PageProps<"/">) {
@@ -39,139 +46,216 @@ export default async function Home(props: PageProps<"/">) {
       getGuessRound(supabase),
     ]);
 
+  const postHref = user ? "/create" : "/login?next=/create";
+
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 py-6">
-      <section className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-navy/70 dark:text-columbia/80">
-            Humans vs. AI caption battles
-          </p>
-          <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl">
-            Can Columbia students be funnier than AI?
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 pt-8 sm:px-6 sm:pt-14">
+      {/* Hero */}
+      <section className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="animate-fade-up flex flex-col items-start gap-6">
+          <span className="chip glass py-1.5 pl-2 pr-3 text-ink-2">
+            <span className="animate-pulse-dot h-2 w-2 rounded-full bg-sky" aria-hidden />
+            live on morningside heights
+          </span>
+          <h1 className="display text-[3.1rem] text-ink sm:text-7xl lg:text-[5.4rem]">
+            Your humor.
+            <br />
+            Our AI.
+            <br />
+            Let&apos;s see who&apos;s <span className="serif text-[1.08em] text-sky-deep">funnier.</span>
           </h1>
-          <p className="text-black/60 dark:text-white/60">
-            Every photo gets 4 captions from Gemini. Add your own, vote blind,
-            then see who really wrote each one.
+          <p className="max-w-md text-lg leading-relaxed text-ink-2">
+            Upload a photo, let AI do its thing, and see whose caption wins.
           </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={postHref} className="btn btn-primary btn-lg">
+              Let&apos;s make something iconic <Icon name="arrow" className="h-5 w-5" />
+            </Link>
+            {user ? (
+              <Link href="/surprise" className="btn btn-ghost btn-lg">
+                🎲 Surprise me
+              </Link>
+            ) : (
+              <a href="#guess" className="btn btn-ghost btn-lg">
+                🎯 Play Human or AI?
+              </a>
+            )}
+          </div>
         </div>
-        <ScoreboardCard scoreboard={scoreboard} />
+        <div className="animate-fade-up relative [animation-delay:120ms]">
+          <span aria-hidden className="animate-float absolute -left-4 -top-6 z-10 text-4xl drop-shadow-sm sm:-left-8">
+            🧑‍🎓
+          </span>
+          <span aria-hidden className="animate-float absolute -bottom-5 -right-2 z-10 text-4xl drop-shadow-sm [animation-delay:-3s]">
+            🤖
+          </span>
+          <ScoreboardCard scoreboard={scoreboard} />
+        </div>
       </section>
 
+      {/* How it works, for first-time visitors */}
       {!user && (
-        <section className="flex flex-col gap-2 rounded-2xl bg-columbia/40 p-4 text-navy dark:bg-columbia/10 dark:text-columbia">
-          <p className="font-semibold">👋 Just looking around? You can:</p>
-          <ul className="flex flex-col gap-1 text-sm">
-            <li>🎯 Play <span className="font-semibold">Human or AI?</span> right below, no account needed</li>
-            <li>📊 Browse every battle and today&apos;s leaderboard</li>
-            <li>
-              ✍️{" "}
-              <Link href="/login" className="font-semibold underline">
-                Sign in with Google
-              </Link>{" "}
-              to vote, reveal authors, and write your own captions
-            </li>
-          </ul>
+        <section className="grid gap-3 sm:grid-cols-3">
+          {STEPS.map((step) => (
+            <div key={step.n} className="card flex flex-col gap-2 p-5">
+              <span className="display text-sm text-sky-deep">{step.n}</span>
+              <h2 className="display text-2xl">{step.title}</h2>
+              <p className="text-sm leading-relaxed text-ink-2">{step.body}</p>
+            </div>
+          ))}
+          <p className="text-sm text-ink-2 sm:col-span-3">
+            Just looking around? Play <a href="#guess" className="font-semibold text-ink underline underline-offset-2">Human or AI?</a>{" "}
+            and browse every battle without an account.{" "}
+            <Link href="/login" className="font-semibold text-ink underline underline-offset-2">
+              Sign in with Google
+            </Link>{" "}
+            to vote, reveal authors, and write your own captions.
+          </p>
         </section>
       )}
 
-      {!user && <GuessGame initialRound={guessRound} signedIn={false} />}
-
-      <Link
-        href="/challenge"
-        className="group relative flex flex-col gap-2 overflow-hidden rounded-2xl bg-navy p-5 text-white shadow-md transition active:scale-[0.99]"
-      >
-        <span className="absolute -right-6 -top-6 text-8xl opacity-15" aria-hidden>
-          📸
-        </span>
-        <span className="text-xs font-bold uppercase tracking-widest text-columbia">
-          Today&apos;s challenge · <Countdown initialMs={msUntilNextChallenge()} /> left
-        </span>
-        <span className="text-2xl font-bold leading-snug">{getDailyPrompt(today)}</span>
-        {yesterdayWinner && (
-          <span className="text-sm text-white/75">
-            🏆 Yesterday:{" "}
-            {yesterdayWinner.authorType === "human"
-              ? `${yesterdayWinner.authorName ?? "a human"} beat the AI`
-              : "Gemini took the crown"}
-          </span>
-        )}
-        <span className="mt-1 self-start rounded-full bg-columbia px-4 py-1.5 text-sm font-semibold text-navy group-hover:bg-white">
-          See the leaderboard →
-        </span>
-      </Link>
-
-      <Link
-        href="/surprise"
-        className="flex items-center gap-4 rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-black/5 transition hover:ring-black/15 active:scale-[0.99] dark:ring-white/10 dark:hover:ring-white/25"
-      >
-        <span
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-navy to-indigo-700 text-2xl"
-          aria-hidden
-        >
-          🎲
-        </span>
-        <span className="flex min-w-0 flex-col">
-          <span className="font-bold">Surprise Me</span>
-          <span className="text-sm text-black/60 dark:text-white/60">
-            Roll a random campus photo and out-write Gemini on it. No photo needed.
-          </span>
-        </span>
-        <span className="ml-auto shrink-0 font-semibold text-navy dark:text-columbia">→</span>
-      </Link>
-
-      {user && <GuessGame initialRound={guessRound} signedIn />}
-
-      <div className="flex items-center justify-between gap-2">
-        <nav className="flex gap-2 text-sm">
-          {TABS.map((tab) => (
-            <Link
-              key={tab.sort}
-              href={tab.sort === "new" ? "/" : `/?sort=${tab.sort}`}
-              className={`rounded-full px-3 py-1.5 font-medium ${
-                tab.sort === sort
-                  ? "bg-navy text-white dark:bg-columbia dark:text-navy"
-                  : "bg-surface ring-1 ring-black/10 dark:ring-white/15"
-              }`}
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </nav>
+      {/* Bento: today's challenge + surprise me */}
+      <section className="grid gap-4 md:grid-cols-5">
         <Link
-          href={user ? "/create" : "/login?next=/create"}
-          className="hidden rounded-full bg-navy px-4 py-1.5 text-sm font-semibold text-white sm:block dark:bg-columbia dark:text-navy"
+          href="/challenge"
+          className="lift group relative flex min-h-64 flex-col justify-between gap-6 overflow-hidden rounded-[32px] bg-ice p-6 text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:p-8 md:col-span-3"
         >
-          + Post a photo
+          <span aria-hidden className="absolute -right-8 -top-10 h-56 w-56 rounded-full bg-white/50 blur-2xl" />
+          <span aria-hidden className="absolute -bottom-6 right-6 text-[7rem] leading-none opacity-90 transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-105">
+            📸
+          </span>
+          <div className="relative flex flex-wrap items-center gap-2">
+            <span className="chip bg-white/70 text-ink">today&apos;s challenge</span>
+            <span className="chip bg-ink text-white">
+              ⏳ <Countdown initialMs={msUntilNextChallenge()} /> left
+            </span>
+          </div>
+          <div className="relative flex max-w-md flex-col gap-3">
+            <p className="display text-4xl sm:text-5xl">{getDailyPrompt(today)}</p>
+            {yesterdayWinner && (
+              <p className="text-sm text-ink-2">
+                🏆 Yesterday:{" "}
+                {yesterdayWinner.authorType === "human"
+                  ? `${yesterdayWinner.authorName ?? "a human"} beat the AI`
+                  : "Gemini took the crown"}
+              </p>
+            )}
+            <span className="mt-1 inline-flex items-center gap-1.5 self-start text-sm font-semibold">
+              See the leaderboard
+              <Icon name="arrow" className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </span>
+          </div>
         </Link>
-      </div>
 
-      {error && (
-        <p className="text-red-600">Error loading the feed: {error}</p>
-      )}
+        <Link
+          href="/surprise"
+          className="card lift group relative flex flex-col justify-between gap-6 overflow-hidden p-6 sm:p-8 md:col-span-2"
+        >
+          <span className="orb flex h-16 w-16 items-center justify-center rounded-[22px] text-3xl transition-transform duration-500 group-hover:rotate-12">
+            🎲
+          </span>
+          <div className="flex flex-col gap-2">
+            <p className="display text-3xl">
+              Surprise <span className="serif text-4xl">me</span>
+            </p>
+            <p className="text-sm leading-relaxed text-ink-2">
+              No photo? Roll a random one from around campus and out-write Gemini on it.
+            </p>
+            <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold">
+              Roll the dice <Icon name="arrow" className="h-4 w-4" />
+            </span>
+          </div>
+        </Link>
+      </section>
 
-      {!error && generations.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface p-8 text-center ring-1 ring-black/5 dark:ring-white/10">
-          <p className="text-black/60 dark:text-white/60">
-            {sort === "top"
-              ? "No photos this week yet."
-              : "Nothing here yet. Be the first to post today."}
-          </p>
-          <Link
-            href={user ? "/create" : "/login?next=/create"}
-            className="rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white"
-          >
-            Post a photo
-          </Link>
+      {!user && (
+        <div className="mx-auto w-full max-w-3xl">
+          <GuessGame initialRound={guessRound} signedIn={false} />
         </div>
       )}
 
-      {generations.map((generation) => (
-        <GenerationCard
-          key={generation.id}
-          generation={generation}
-          currentUserId={user?.id}
-        />
-      ))}
+      {/* Feed */}
+      <section className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow">the feed</p>
+              <h2 className="display mt-1 text-4xl sm:text-5xl">
+                {sort === "top" ? (
+                  <>
+                    Top <span className="serif">this week</span>
+                  </>
+                ) : (
+                  <>
+                    Fresh <span className="serif">battles</span>
+                  </>
+                )}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <nav aria-label="Sort" className="flex gap-1 rounded-full bg-powder/80 p-1 text-sm">
+                {TABS.map((tab) => (
+                  <Link
+                    key={tab.sort}
+                    href={tab.sort === "new" ? "/" : `/?sort=${tab.sort}`}
+                    aria-current={tab.sort === sort ? "page" : undefined}
+                    className={`rounded-full px-3.5 py-1.5 font-medium transition ${
+                      tab.sort === sort
+                        ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(22,38,61,0.18)]"
+                        : "text-ink-2 hover:text-ink"
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          {error && (
+            <p role="alert" className="rounded-[22px] bg-down-soft p-4 text-sm text-down-ink">
+              We couldn&apos;t load the feed: {error}
+            </p>
+          )}
+
+          {!error && generations.length === 0 && (
+            <div className="card flex flex-col items-center gap-4 p-10 text-center">
+              <span className="orb flex h-16 w-16 items-center justify-center rounded-full text-3xl">📸</span>
+              <p className="display text-2xl">
+                {sort === "top" ? "No photos this week yet." : "It's quiet. Too quiet."}
+              </p>
+              <p className="text-sm text-ink-2">
+                {sort === "top" ? "Be the one who changes that." : "Nothing here yet. Be the first to post today."}
+              </p>
+              <Link href={postHref} className="btn btn-primary">
+                Post a photo
+              </Link>
+            </div>
+          )}
+
+          {generations.map((generation) => (
+            <GenerationCard
+              key={generation.id}
+              generation={generation}
+              currentUserId={user?.id}
+            />
+          ))}
+        </div>
+
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
+          {user && <GuessGame initialRound={guessRound} signedIn />}
+          <div className="card flex flex-col gap-3 p-5">
+            <p className="eyebrow">got a photo?</p>
+            <p className="display text-2xl">
+              Your meme era <span className="serif">starts here.</span>
+            </p>
+            <p className="text-sm text-ink-2">Post it, let Gemini take four swings, then try to beat it.</p>
+            <Link href={postHref} className="btn btn-ice mt-1 self-start">
+              + Post a photo
+            </Link>
+          </div>
+        </aside>
+      </section>
     </main>
   );
 }

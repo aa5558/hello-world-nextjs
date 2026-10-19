@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deletePost, updatePostContext } from "@/app/posts/actions";
+import { useConfirm } from "./ConfirmDialog";
 
 // Edit-context / delete controls shown to the owner of a post.
 export function PostOwnerControls({
@@ -18,6 +19,7 @@ export function PostOwnerControls({
   const [draft, setDraft] = useState(context ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const { confirm, dialog } = useConfirm();
 
   function save() {
     setError(null);
@@ -31,14 +33,13 @@ export function PostOwnerControls({
     });
   }
 
-  function remove() {
-    if (
-      !window.confirm(
-        "Delete this post? The photo, all its captions, and all votes on them will be gone for good."
-      )
-    ) {
-      return;
-    }
+  async function remove() {
+    const ok = await confirm({
+      title: "Delete this post?",
+      body: "The photo, all its captions, and every vote on them will be gone for good.",
+      confirmLabel: "Delete post",
+    });
+    if (!ok) return;
     setError(null);
     startTransition(async () => {
       const result = await deletePost(generationId);
@@ -50,14 +51,11 @@ export function PostOwnerControls({
     });
   }
 
-  const button =
-    "rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-black/10 hover:bg-black/5 disabled:opacity-40 dark:ring-white/15 dark:hover:bg-white/10";
-
   return (
     <div className="flex flex-col gap-2">
       {editing ? (
-        <div className="flex flex-col gap-2">
-          <label htmlFor={`context-${generationId}`} className="text-xs font-semibold">
+        <div className="flex flex-col gap-2 rounded-[22px] bg-background p-3 ring-1 ring-line">
+          <label htmlFor={`context-${generationId}`} className="eyebrow">
             Context
           </label>
           <input
@@ -67,10 +65,10 @@ export function PostOwnerControls({
             maxLength={200}
             autoFocus
             placeholder="Add some context (optional)"
-            className="rounded-lg border border-black/15 bg-surface px-3 py-2 text-sm dark:border-white/20"
+            className="field py-2.5 text-sm"
           />
           <div className="flex gap-2">
-            <button type="button" onClick={save} disabled={pending} className={button}>
+            <button type="button" onClick={save} disabled={pending} className="btn btn-primary btn-sm">
               {pending ? "Saving…" : "Save"}
             </button>
             <button
@@ -80,7 +78,7 @@ export function PostOwnerControls({
                 setDraft(context ?? "");
               }}
               disabled={pending}
-              className={button}
+              className="btn btn-ghost btn-sm"
             >
               Cancel
             </button>
@@ -88,25 +86,21 @@ export function PostOwnerControls({
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-black/50 dark:text-white/50">Your post:</span>
-          <button type="button" onClick={() => setEditing(true)} disabled={pending} className={button}>
+          <span className="chip bg-butter text-butter-ink">✨ your post</span>
+          <button type="button" onClick={() => setEditing(true)} disabled={pending} className="btn btn-ghost btn-sm">
             ✏️ Edit context
           </button>
-          <button
-            type="button"
-            onClick={remove}
-            disabled={pending}
-            className={`${button} text-red-600`}
-          >
+          <button type="button" onClick={remove} disabled={pending} className="btn btn-ghost btn-sm !text-down-ink">
             {pending ? "Deleting…" : "🗑️ Delete post"}
           </button>
         </div>
       )}
       {error && (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-xs text-down-ink">
           {error}
         </p>
       )}
+      {dialog}
     </div>
   );
 }

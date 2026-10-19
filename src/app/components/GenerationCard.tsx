@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { VIBES, isVibe } from "@/lib/captions";
+import { VIBES, VIBE_EMOJI, isVibe } from "@/lib/captions";
 import type { FeedGeneration } from "@/lib/feed";
 import { AddCaptionForm } from "./AddCaptionForm";
 import { CaptionRow } from "./CaptionRow";
@@ -31,72 +31,59 @@ export function GenerationCard({
     : generation.vibe;
   const signedIn = Boolean(currentUserId);
   const hiddenCount = generation.captions.filter((c) => !c.reveal).length;
+  const isMine = generation.userId === currentUserId;
 
   return (
-    <article
-      id={`g-${generation.id}`}
-      className="overflow-hidden rounded-2xl bg-surface shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-    >
-      <Link href={`/g/${generation.id}`} className="block bg-black/5 dark:bg-black/40">
+    <article id={`g-${generation.id}`} className="card overflow-hidden p-2">
+      <Link href={`/g/${generation.id}`} className="group relative block overflow-hidden rounded-[22px] bg-powder">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={generation.imageUrl}
           alt={generation.context ?? "Uploaded photo"}
           loading="lazy"
-          className="max-h-[480px] w-full object-contain"
+          className="max-h-[520px] w-full object-contain transition duration-500 group-hover:scale-[1.015]"
         />
+        <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-wrap items-start justify-between gap-2">
+          <span className="chip glass text-ink">
+            {VIBE_EMOJI[generation.vibe] ?? "✨"} {vibeLabel}
+          </span>
+          <span className="chip glass text-ink-2">{timeAgo(generation.createdAt)}</span>
+        </div>
+        {generation.imageSource === "ai" && (
+          <span
+            title={generation.imagePrompt ?? undefined}
+            className="chip glass pointer-events-none absolute bottom-3 left-3 text-ai-ink"
+          >
+            🎨 AI-generated photo
+          </span>
+        )}
       </Link>
 
-      <div className="flex flex-col gap-3 p-4">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-black/50 dark:text-white/50">
-          <span className="rounded-full bg-columbia/50 px-2 py-0.5 font-semibold text-navy dark:bg-columbia/20 dark:text-columbia">
-            {vibeLabel}
-          </span>
-          {generation.dailyPrompt && (
-            <Link href="/challenge" className="truncate hover:underline">
-              📅 {generation.dailyPrompt}
-            </Link>
-          )}
-          {generation.imageSource === "ai" && (
-            <span
-              title={generation.imagePrompt ?? undefined}
-              className="rounded-full bg-violet-100 px-2 py-0.5 font-semibold text-violet-800 dark:bg-violet-500/20 dark:text-violet-200"
-            >
-              🎨 AI-generated photo
-            </span>
-          )}
-          {generation.userId === currentUserId && <span>· your post</span>}
-          <Link href={`/g/${generation.id}`} className="hover:underline">
-            · {timeAgo(generation.createdAt)}
+      <div className="flex flex-col gap-4 px-3 pb-3 pt-4 sm:px-4">
+        {generation.dailyPrompt && (
+          <Link href="/challenge" className="chip max-w-full self-start bg-powder text-ink transition hover:bg-ice">
+            <span aria-hidden>📅</span>
+            <span className="truncate">{generation.dailyPrompt}</span>
           </Link>
-        </div>
+        )}
 
         {generation.imageSource === "ai" && generation.imagePrompt && (
-          <p className="text-xs text-black/50 dark:text-white/50">
-            🎨 Prompt: {generation.imagePrompt}
-          </p>
+          <p className="text-xs text-ink-3">🎨 Prompt: {generation.imagePrompt}</p>
         )}
 
         {generation.context && (
-          <p className="text-sm text-black/70 dark:text-white/70">
-            “{generation.context}”
-          </p>
+          <p className="serif text-[22px] leading-tight text-ink">“{generation.context}”</p>
         )}
 
-        {generation.userId === currentUserId && (
-          <PostOwnerControls
-            generationId={generation.id}
-            context={generation.context}
-          />
-        )}
+        {isMine && <PostOwnerControls generationId={generation.id} context={generation.context} />}
 
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="text-sm font-bold">
-            ⚔️ {generation.captions.length} captions battling
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="display text-xl">
+            {generation.captions.length} captions <span className="serif text-2xl text-ink-2">in the ring</span>
           </h3>
           {hiddenCount > 0 && (
-            <span className="text-xs text-black/50 dark:text-white/50">
-              {signedIn ? "Vote to reveal who wrote it" : "Sign in to vote & reveal"}
+            <span className="text-xs font-medium text-ink-3">
+              {signedIn ? "vote to reveal who wrote it 👀" : "sign in to vote & reveal"}
             </span>
           )}
         </div>
@@ -112,25 +99,23 @@ export function GenerationCard({
           ))}
         </ol>
 
-        <div className="border-t border-black/5 pt-3 dark:border-white/10">
+        <div className="pt-1">
           {!signedIn ? (
-            <Link
-              href={`/login?next=/g/${generation.id}`}
-              className="text-sm font-semibold text-navy underline-offset-2 hover:underline dark:text-columbia"
-            >
+            <Link href={`/login?next=/g/${generation.id}`} className="btn btn-ice w-full">
               ✍️ Sign in to add your own caption
             </Link>
           ) : captionForm === "open" ? (
-            <AddCaptionForm generationId={generation.id} />
+            <div className="rounded-[22px] bg-background p-4 ring-1 ring-line">
+              <AddCaptionForm generationId={generation.id} />
+            </div>
           ) : (
-            <details className="group">
-              <summary className="cursor-pointer list-none text-sm font-semibold text-navy dark:text-columbia">
-                ✍️ Add your caption{" "}
-                <span className="text-black/40 group-open:hidden dark:text-white/40">
-                  — beat the AI
-                </span>
+            <details className="group rounded-[22px] bg-background ring-1 ring-line">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-[22px] px-4 py-3 text-sm font-semibold text-ink transition hover:bg-powder">
+                <span>✍️ Add your caption</span>
+                <span className="text-ink-3 group-open:hidden">beat the AI →</span>
+                <span className="hidden text-ink-3 group-open:inline">close</span>
               </summary>
-              <div className="pt-3">
+              <div className="px-4 pb-4 pt-1">
                 <AddCaptionForm generationId={generation.id} />
               </div>
             </details>

@@ -17,8 +17,8 @@ export default async function MoviesPage() {
 
   if (error) {
     return (
-      <main className="p-8">
-        <p className="text-red-600">Error loading movies: {error.message}</p>
+      <main className="mx-auto w-full max-w-2xl px-4 pt-10">
+        <p role="alert" className="rounded-[22px] bg-down-soft p-4 text-sm text-down-ink">Error loading movies: {error.message}</p>
       </main>
     );
   }
@@ -26,27 +26,30 @@ export default async function MoviesPage() {
   const movies = (data ?? []) as Movie[];
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-6 text-3xl font-semibold">Movies</h1>
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr className="border-b">
-            <th className="py-2 pr-4">Title</th>
-            <th className="py-2 pr-4">Year</th>
-            <th className="py-2">Rating</th>
-          </tr>
-        </thead>
-        <tbody>
-          {movies.map((movie) => (
-            <tr key={movie.id} className="border-b">
-              <td className="py-2 pr-4">{movie.title}</td>
-              <td className="py-2 pr-4">{movie.year}</td>
-              <td className="py-2">{movie.rating}</td>
+    <main className="mx-auto w-full max-w-2xl px-4 pt-10">
+      <p className="eyebrow">from the archive</p>
+      <h1 className="display mb-6 mt-1 text-5xl">Movies</h1>
+      <div className="card overflow-hidden">
+        <table className="w-full border-collapse text-left text-sm">
+          <thead className="bg-powder/60 text-xs text-ink-2">
+            <tr>
+              <th className="px-5 py-3 font-semibold">Title</th>
+              <th className="px-3 py-3 font-semibold">Year</th>
+              <th className="px-5 py-3 font-semibold">Rating</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {movies.length === 0 && <p className="mt-4">No movies found.</p>}
+          </thead>
+          <tbody className="divide-y divide-line">
+            {movies.map((movie) => (
+              <tr key={movie.id}>
+                <td className="px-5 py-3 font-medium">{movie.title}</td>
+                <td className="px-3 py-3 text-ink-2">{movie.year}</td>
+                <td className="px-5 py-3 text-ink-2">{movie.rating}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {movies.length === 0 && <p className="p-5 text-sm text-ink-2">No movies found.</p>}
+      </div>
     </main>
   );
 }

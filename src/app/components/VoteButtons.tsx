@@ -17,8 +17,10 @@ function applyVote(state: VoteState, vote: -1 | 0 | 1): VoteState {
   };
 }
 
+const CAPSULE =
+  "flex w-11 shrink-0 flex-col items-center rounded-full bg-white py-1 shadow-[inset_0_0_0_1px_rgba(22,38,61,0.08)]";
 const ARROW =
-  "flex h-9 w-10 items-center justify-center rounded-lg text-lg transition active:scale-90 disabled:cursor-not-allowed";
+  "flex h-8 w-8 items-center justify-center rounded-full text-[13px] transition active:scale-75 disabled:cursor-not-allowed";
 
 export function VoteButtons({
   captionId,
@@ -54,11 +56,11 @@ export function VoteButtons({
       <Link
         href={`/login?next=${encodeURIComponent(pathname)}`}
         title="Sign in to vote"
-        className="flex w-10 shrink-0 flex-col items-center text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"
+        className={`${CAPSULE} text-ink-3 transition hover:text-ink`}
       >
-        <span aria-hidden className="text-lg">▲</span>
-        <span className="text-sm font-bold tabular-nums">{score}</span>
-        <span aria-hidden className="text-lg">▼</span>
+        <span aria-hidden className="flex h-7 items-center text-[13px]">▲</span>
+        <span className="text-sm font-bold tabular-nums text-ink">{score}</span>
+        <span aria-hidden className="flex h-7 items-center text-[13px]">▼</span>
         <span className="sr-only">Sign in to vote</span>
       </Link>
     );
@@ -66,14 +68,9 @@ export function VoteButtons({
 
   if (locked) {
     return (
-      <div
-        title="You can't vote on your own caption"
-        className="flex w-10 shrink-0 flex-col items-center justify-center gap-0.5 text-black/40 dark:text-white/40"
-      >
-        <span className="text-sm font-bold tabular-nums text-foreground">
-          {score}
-        </span>
-        <span className="text-[10px] leading-none">votes</span>
+      <div title="You can't vote on your own caption" className={`${CAPSULE} justify-center gap-0.5 py-3 text-ink-3`}>
+        <span className="text-sm font-bold tabular-nums text-ink">{score}</span>
+        <span className="text-[9px] font-semibold uppercase leading-none tracking-wide">votes</span>
       </div>
     );
   }
@@ -97,7 +94,7 @@ export function VoteButtons({
   }
 
   return (
-    <div className="flex w-10 shrink-0 flex-col items-center">
+    <div className={CAPSULE}>
       <button
         type="button"
         onClick={() => vote(1)}
@@ -105,21 +102,15 @@ export function VoteButtons({
         aria-pressed={state.vote === 1}
         aria-label="Upvote"
         className={`${ARROW} ${
-          state.vote === 1
-            ? "bg-orange-100 text-orange-600 dark:bg-orange-500/20"
-            : "text-black/35 hover:bg-black/5 dark:text-white/40 dark:hover:bg-white/10"
+          state.vote === 1 ? "orb text-ink" : "text-ink-3 hover:bg-powder hover:text-ink"
         }`}
       >
         ▲
       </button>
       <span
         aria-live="polite"
-        className={`text-sm font-bold tabular-nums ${
-          state.vote === 1
-            ? "text-orange-600"
-            : state.vote === -1
-              ? "text-indigo-600 dark:text-indigo-400"
-              : ""
+        className={`py-0.5 text-sm font-bold tabular-nums ${
+          state.vote === 1 ? "text-human-ink" : state.vote === -1 ? "text-down-ink" : "text-ink"
         }`}
       >
         {score}
@@ -131,15 +122,13 @@ export function VoteButtons({
         aria-pressed={state.vote === -1}
         aria-label="Downvote"
         className={`${ARROW} ${
-          state.vote === -1
-            ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400"
-            : "text-black/35 hover:bg-black/5 dark:text-white/40 dark:hover:bg-white/10"
+          state.vote === -1 ? "bg-down-soft text-down-ink" : "text-ink-3 hover:bg-powder hover:text-ink"
         }`}
       >
         ▼
       </button>
       {error && (
-        <span role="alert" className="mt-1 w-20 text-center text-[10px] text-red-600">
+        <span role="alert" className="mt-1 w-24 text-center text-[10px] leading-tight text-down-ink">
           {error}
         </span>
       )}

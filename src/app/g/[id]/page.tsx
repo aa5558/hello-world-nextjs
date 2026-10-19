@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GenerationCard } from "@/app/components/GenerationCard";
+import { Icon } from "@/app/components/Icon";
 import { getFeed } from "@/lib/feed";
 import { createClient } from "@/lib/supabase/server";
 
@@ -46,18 +47,17 @@ export default async function GenerationPage(props: PageProps<"/g/[id]">) {
   if (!generation) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-6">
-      <Link href="/" className="text-sm font-medium text-navy hover:underline dark:text-columbia">
-        ← All battles
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pt-6 sm:pt-10">
+      <Link href="/" className="btn btn-ghost btn-sm self-start">
+        <Icon name="back" className="h-4 w-4" /> All battles
       </Link>
-      <GenerationCard
-        generation={generation}
-        currentUserId={user?.id}
-        captionForm="open"
-      />
+      <div className="animate-fade-up">
+        <GenerationCard generation={generation} currentUserId={user?.id} captionForm="open" />
+      </div>
       {generation.userId === user?.id && (
-        <p className="text-center text-sm text-black/60 dark:text-white/60">
-          Send this link to your friends. Can they out-write Gemini?
+        <p className="flex items-center justify-center gap-2 text-center text-sm text-ink-2">
+          <Icon name="share" className="h-4 w-4" />
+          Send this link to the group chat. Can they out-write Gemini?
         </p>
       )}
     </main>
