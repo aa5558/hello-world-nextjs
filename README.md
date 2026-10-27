@@ -54,11 +54,13 @@ New users are redirected to `/profile` after their first sign-in and prompted to
 
 **Can Columbia students be funnier than AI?** Signed-in users upload a photo, pick a caption voice, and Gemini writes four captions. Anyone signed in can then add their own caption to any photo. Human and AI captions are shown together with the author hidden; vote on one and it reveals whether a classmate or Gemini wrote it. A running scoreboard tracks which side wins more photos.
 
-- **Battles** (`/`): the feed (newest or top this week), the Humans vs. Gemini scoreboard, and today's challenge.
-- **Daily challenge** (`/challenge`): a new photo prompt every midnight New York time, a live leaderboard of every caption on today's photos, and yesterday's winner with its author revealed.
-- **My Posts** (`/me`): your photos with every caption on them (author revealed, since they're on your photo), your own captions with their score and rank, and your stats.
+- **Battles** (`/`): an editorial hero with the latest posts fanned out like polaroids, the Humans vs. Gemini scoreboard, today's challenge, and the feed as a masonry of battle cards or a photo wall (newest or top this week).
+- **Meme Studio** (`/create`): photo (upload with drag-and-drop, or pick a library photo such as today's drop), voice, and context, with a live preview and a step-by-step "the AI is cooking" sequence. Lands on the new post with a prompt to beat Gemini.
+- **The Daily Drop** (`/challenge`): a new prompt every midnight New York time, plus a featured photo when an admin has scheduled one, live photo and caption counts, the leaderboard, and yesterday's winner with its author revealed.
+- **Your Meme Era** (`/me`): your "era" (from the voice you use most), achievements computed only from what you've actually done, your photos with every caption on them, and your own captions with score and rank.
+- **Final results**: once a photo's challenge day is over, its page shows who won, best human vs. best Gemini caption (`battle_result()`, never while voting is open).
 - **Human or AI?** (home page): a guessing game on captions from past challenge days. It works without an account, so visitors can try the idea before signing in. Signed-out visitors can also browse every battle and the leaderboard.
-- **🎲 Surprise Me** (`/surprise`, also a tab on Post): rolls a random photo already posted in the app and opens its battle, so you can jump in and caption without a photo of your own. Nothing is copied or generated; the photo stays its original owner's, and your caption is attributed to you. "Try another" re-rolls, avoiding the last few photos you've seen and your own.
+- **🎲 Surprise Me** (`/surprise`): two modes. **Fresh photo** rolls an unclaimed photo from the admin-curated library and sends it to the Studio. **Random battle** rolls a random photo already posted in the app and opens its battle, so you can jump in and caption without a photo of your own. Nothing is copied or generated; the photo stays its original owner's, and your caption is attributed to you. "Try another" re-rolls, avoiding the last few photos you've seen and your own.
 - **AI-generated photos (off by default)**: set `ENABLE_AI_PHOTOS=true` to show a "Generate with AI" option on Post, where Gemini draws a photo from a description and then captions it (5 a day per user). Needs a Gemini API project with billing enabled; the free tier has no image quota.
 - **Edit / delete your own content**: edit the context on your post or delete it (removes its captions and votes too); edit your own caption until someone votes on it, or delete it any time.
 - Each post has a shareable `/g/<id>` link with a link-preview image.
@@ -92,13 +94,17 @@ Who wrote a caption (`author_type`, `user_id`) is never readable directly. These
 | `delete_human_caption(id)` | signed in | delete your own human caption |
 | `guess_round(exclude)` / `check_guess(id, guess)` | everyone | the guessing game; only uses captions from *finished* challenge days |
 
+**Captions come from the AI Studio pipeline** (`src/lib/pipeline.ts`, shared with the admin app): the database picks a prompt chain by the admin-set mix, the app runs each step against Gemini with a per-call timeout and an overall time budget, and every call is logged (`generation_requests`, `llm_responses`). The tables and functions are in the admin repo's `20261026000000_ai_studio_access_images.sql`. Before that migration is applied, the app uses the original single prompt.
+
+**Signups** can be limited to approved email domains and whitelisted emails from the admin console. The login page explains the rule when it's on, and a blocked Google signup comes back with a clear message instead of a generic error.
+
 ## Design
 
 Light-only brand system in [`src/app/globals.css`](src/app/globals.css): icy baby blue `#B8DCFF`, powder `#E3F2FF`, sky `#69B5FF`, navy ink `#16263D` on `#F8FCFF`. Headlines use Bricolage Grotesque with one Instrument Serif italic word; body text is Geist. Shared classes: `.btn` (glossy pills), `.card`, `.glass`, `.chip`, `.field`, `.orb` (the 3D bubble logo and Post button). Humans are blue `#3D8FF0` and Gemini is bubblegum `#E5539A`; both were checked for color-blind separation and contrast. Motion respects `prefers-reduced-motion`.
 
 ## Tests
 
-`npm test` runs Playwright against a production build (`npm run build` first) and a local Supabase stand-in from the admin repo ([`morningside-memes-admin/tests/mock`](https://github.com/aa5558/morningside-memes-admin/tree/main/tests/mock)). The stand-in runs this repo's migrations with RLS on PGlite. The tests cover browsing signed out, the Human or AI? game, voting and the author reveal, adding/editing/deleting your own caption, deleting your own post, the profile form, posting with Gemini (when `GEMINI_API_KEY` is set), and no horizontal scrolling on phones. They expect the admin repo checked out next to this one (or `MOCK_DIR`).
+`npm test` runs Playwright against a production build (`npm run build` first) and a local Supabase stand-in from the admin repo ([`morningside-memes-admin/tests/mock`](https://github.com/aa5558/morningside-memes-admin/tree/main/tests/mock)). The stand-in runs this repo's migrations with RLS on PGlite. The tests cover browsing signed out, the Human or AI? game, voting and the author reveal, adding/editing/deleting your own caption, deleting your own post, the profile form, the Daily Drop (and that future drops stay hidden), Surprise Me's fresh-photo mode, final battle results, the photo wall, Your Meme Era achievements, signup-gate messages, a pipeline failure being logged with no half-made post, posting with Gemini from an upload and from the Daily Drop (when `GEMINI_API_KEY` is set and has quota), and no horizontal scrolling on phones. They expect the admin repo checked out next to this one (or `MOCK_DIR`).
 
 ## Deploy on Vercel
 

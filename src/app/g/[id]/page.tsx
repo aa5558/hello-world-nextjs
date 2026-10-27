@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GenerationCard } from "@/app/components/GenerationCard";
+import { BattleResultCard } from "@/app/components/BattleResultCard";
 import { Icon } from "@/app/components/Icon";
+import { ShareButton } from "@/app/components/ShareButton";
+import { getBattleResult } from "@/lib/battles";
 import { getFeed } from "@/lib/feed";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,6 +40,7 @@ export async function generateMetadata(
 
 export default async function GenerationPage(props: PageProps<"/g/[id]">) {
   const { id } = await props.params;
+  const searchParams = await props.searchParams;
 
   const supabase = await createClient();
   const {
@@ -45,20 +49,35 @@ export default async function GenerationPage(props: PageProps<"/g/[id]">) {
 
   const generation = await loadGeneration(id, user?.id);
   if (!generation) notFound();
+  const result = await getBattleResult(supabase, generation.id);
+  const isMine = generation.userId === user?.id;
+  const justPosted = isMine && searchParams.new === "1";
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pt-6 sm:pt-10">
-      <Link href="/" className="btn btn-ghost btn-sm self-start">
-        <Icon name="back" className="h-4 w-4" /> All battles
-      </Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link href="/" className="btn btn-ghost btn-sm">
+          <Icon name="back" className="h-4 w-4" /> All battles
+        </Link>
+        <ShareButton path={`/g/${generation.id}`} text={generation.captions[0]?.text ?? "Human or AI? You decide."} />
+      </div>
+      {justPosted && (
+        <section className="animate-slide-in relative overflow-hidden rounded-[28px] bg-ink p-5 text-white">
+          <span aria-hidden className="absolute -right-6 -top-8 text-[6rem] leading-none opacity-90">🍳</span>
+          <p className="eyebrow !text-white/70">fresh out the oven</p>
+          <p className="display mt-1 text-3xl">Gemini took its {generation.captions.length} swings.</p>
+          <p className="mt-1 max-w-sm text-sm text-white/80">
+            Now it&apos;s your turn. Write a caption below and see if the campus picks you over the AI.
+          </p>
+          <a href="#add-caption" className="btn btn-ice btn-sm mt-3">✍️ Beat the AI</a>
+        </section>
+      )}
+      {result && <BattleResultCard result={result} />}
       <div className="animate-fade-up">
         <GenerationCard generation={generation} currentUserId={user?.id} captionForm="open" />
       </div>
-      {generation.userId === user?.id && (
-        <p className="flex items-center justify-center gap-2 text-center text-sm text-ink-2">
-          <Icon name="share" className="h-4 w-4" />
-          Send this link to the group chat. Can they out-write Gemini?
-        </p>
+      {isMine && !justPosted && (
+        <p className="text-center text-sm text-ink-2">Send this to the group chat. Can they out-write Gemini?</p>
       )}
     </main>
   );

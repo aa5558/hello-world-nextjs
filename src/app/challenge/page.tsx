@@ -13,13 +13,14 @@ import {
   shiftDay,
 } from "@/lib/captions";
 import { getFeed } from "@/lib/feed";
+import { getDailyDrop } from "@/lib/library";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Daily Caption Challenge — Morningside Memes",
-  description: "A new photo prompt every day at midnight. Top caption wins.",
+  title: "The Daily Drop — Morningside Memes",
+  description: "A new prompt (and sometimes a photo) every day at midnight. Top caption wins.",
 };
 
 export default async function ChallengePage() {
@@ -31,43 +32,80 @@ export default async function ChallengePage() {
   const today = getChallengeDate();
   const yesterday = shiftDay(today, -1);
 
-  const [{ entries, error }, { generations: photos }, winner] =
+  const [{ entries, error }, { generations: photos }, winner, drop] =
     await Promise.all([
       getLeaderboard(supabase, today, user?.id),
       getFeed(supabase, { day: today }),
       getDailyWinner(supabase, yesterday),
+      getDailyDrop(supabase, today),
     ]);
 
   const postHref = user ? "/create" : "/login?next=/create";
+  const dropHref = drop
+    ? user
+      ? `/create?image=${drop.id}`
+      : `/login?next=${encodeURIComponent(`/create?image=${drop.id}`)}`
+    : postHref;
+  const humanEntries = entries.filter((e) => e.reveal?.authorType === "human" && e.reveal.isMine).length;
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-8 sm:px-6 sm:pt-12">
-      {/* Today's prompt */}
-      <section className="animate-fade-up relative overflow-hidden rounded-[36px] bg-ice px-6 py-10 text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-12 sm:py-14">
-        <span aria-hidden className="absolute -right-10 -top-16 h-72 w-72 rounded-full bg-white/50 blur-3xl" />
-        <span aria-hidden className="animate-float absolute bottom-6 right-8 hidden text-[8rem] leading-none sm:block">
-          🏆
-        </span>
-        <div className="relative flex max-w-3xl flex-col gap-5">
+      {/* Today's drop */}
+      <section className="animate-fade-up relative grid overflow-hidden rounded-[40px] bg-ice text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] lg:grid-cols-[1.1fr_0.9fr]">
+        <span aria-hidden className="absolute -left-16 -top-24 h-80 w-80 rounded-full bg-white/50 blur-3xl" />
+        <div className="relative flex flex-col gap-5 px-6 py-10 sm:px-12 sm:py-14">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="chip bg-white/70 text-ink">daily caption challenge</span>
             <span className="chip bg-ink text-white">
+              <span className="animate-pulse-dot h-1.5 w-1.5 rounded-full bg-sky" aria-hidden /> the daily drop
+            </span>
+            <span className="chip bg-white/70 text-ink">
               ⏳ <Countdown initialMs={msUntilNextChallenge()} /> left
             </span>
           </div>
           <h1 className="display text-5xl sm:text-7xl">{getDailyPrompt(today)}</h1>
           <p className="max-w-lg text-[17px] leading-relaxed text-ink-2">
-            Post a photo for today&apos;s prompt, or caption someone else&apos;s. The top-voted caption at
-            midnight wins the day.
+            {drop
+              ? "Today's photo just dropped. Make it a meme, or caption someone else's take. Top-voted caption at midnight takes the crown."
+              : "Post a photo for today's prompt, or caption someone else's. Top-voted caption at midnight takes the crown."}
           </p>
+          <dl className="flex flex-wrap gap-2 text-sm">
+            <div className="rounded-full bg-white/70 px-4 py-2">
+              <dt className="sr-only">Photos today</dt>
+              <dd><span className="display text-lg tabular-nums">{photos.length}</span> {photos.length === 1 ? "photo" : "photos"}</dd>
+            </div>
+            <div className="rounded-full bg-white/70 px-4 py-2">
+              <dt className="sr-only">Captions today</dt>
+              <dd><span className="display text-lg tabular-nums">{entries.length}</span> {entries.length === 1 ? "caption" : "captions"} in the ring</dd>
+            </div>
+            {humanEntries > 0 && (
+              <div className="rounded-full bg-human-soft px-4 py-2 text-human-ink">
+                <dt className="sr-only">Your entries</dt>
+                <dd>you&apos;re in with {humanEntries} ✍️</dd>
+              </div>
+            )}
+          </dl>
           <div className="flex flex-wrap gap-3">
-            <Link href={postHref} className="btn btn-primary btn-lg">
-              📸 Post a photo
+            <Link href={dropHref} className="btn btn-primary btn-lg">
+              {drop ? "✨ Meme today's drop" : "📸 Post a photo"}
             </Link>
             <Link href="/surprise" className="btn btn-ghost btn-lg">
               🎲 Caption a random one
             </Link>
           </div>
+        </div>
+        <div className="relative min-h-72 p-3 lg:p-4">
+          {drop ? (
+            <figure className="relative h-full min-h-72 overflow-hidden rounded-[30px] bg-powder shadow-[0_30px_60px_-30px_rgba(22,38,61,0.5)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={drop.url} alt={drop.altText} className="absolute inset-0 h-full w-full object-cover" />
+              <figcaption className="chip glass absolute bottom-3 left-3 text-ink">📍 {drop.title}</figcaption>
+            </figure>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-3 rounded-[30px] bg-white/50 p-8 text-center">
+              <span aria-hidden className="animate-float text-[6rem] leading-none">🏆</span>
+              <p className="text-sm text-ink-2">No featured photo today. Bring your own.</p>
+            </div>
+          )}
         </div>
       </section>
 

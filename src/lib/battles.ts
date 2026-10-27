@@ -170,3 +170,31 @@ export async function getMyCaptions(
     total: row.total,
   }));
 }
+
+export type BattleResult = {
+  winner: "human" | "ai" | "tie" | "no_contest";
+  bestHuman: number | null;
+  bestAi: number | null;
+  humanCaptions: number;
+  aiCaptions: number;
+};
+
+// The final Humans vs. Gemini result for one photo. Only exists once the
+// photo's challenge day is over, so it never spoils an open vote.
+export async function getBattleResult(
+  supabase: SupabaseClient,
+  generationId: string
+): Promise<BattleResult | null> {
+  const { data } = await supabase.rpc("battle_result", { p_generation: generationId });
+  const row = (data as
+    | { winner: BattleResult["winner"]; best_human: number | null; best_ai: number | null; human_captions: number; ai_captions: number }[]
+    | null)?.[0];
+  if (!row) return null;
+  return {
+    winner: row.winner,
+    bestHuman: row.best_human,
+    bestAi: row.best_ai,
+    humanCaptions: row.human_captions,
+    aiCaptions: row.ai_captions,
+  };
+}

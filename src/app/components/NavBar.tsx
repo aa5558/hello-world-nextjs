@@ -15,11 +15,12 @@ export function NavBar({ signedIn }: { signedIn: boolean }) {
   const postHref = signedIn ? "/create" : "/login?next=/create";
   const items: NavItem[] = [
     { href: "/", label: "Battles", icon: "flame", match: "/" },
-    { href: "/challenge", label: "Daily", icon: "calendar", match: "/challenge" },
+    { href: "/challenge", label: "Daily Drop", icon: "calendar", match: "/challenge" },
+    { href: "/surprise", label: "Surprise", icon: "dice", match: "/surprise" },
     {
       href: signedIn ? "/me" : "/login?next=/me",
-      label: "My Posts",
-      icon: "grid",
+      label: "My Era",
+      icon: "sparkle",
       match: "/me",
     },
   ];
@@ -29,7 +30,7 @@ export function NavBar({ signedIn }: { signedIn: boolean }) {
 
   function isActive(item: NavItem) {
     return item.match === "/"
-      ? pathname === "/" || pathname.startsWith("/g/") || pathname.startsWith("/surprise")
+      ? pathname === "/" || pathname.startsWith("/g/")
       : pathname.startsWith(item.match);
   }
 
@@ -87,7 +88,7 @@ export function NavBar({ signedIn }: { signedIn: boolean }) {
               {account.label}
             </Link>
             <Link href={postHref} className="btn btn-primary btn-sm hidden sm:inline-flex">
-              Post <Icon name="arrow" className="h-4 w-4" />
+              <Icon name="plus" className="h-4 w-4" /> Studio
             </Link>
             <Link
               href={account.href}
@@ -111,14 +112,14 @@ export function NavBar({ signedIn }: { signedIn: boolean }) {
           ))}
           <Link
             href={postHref}
-            aria-label="Post a photo"
+            aria-label="Open the Meme Studio"
             aria-current={pathname.startsWith("/create") ? "page" : undefined}
             className="orb mx-auto -mt-7 flex h-14 w-14 items-center justify-center rounded-full text-ink ring-4 ring-background transition active:scale-90"
           >
             <Icon name="plus" className="h-6 w-6" />
           </Link>
           <DockLink item={items[2]} active={isActive(items[2])} />
-          <DockLink item={account} active={isActive(account)} />
+          <DockLink item={items[3]} active={isActive(items[3])} />
         </div>
       </nav>
     </>

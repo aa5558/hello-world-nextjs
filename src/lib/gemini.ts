@@ -1,4 +1,6 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Overridable only from server env, so tests can point at a local stand-in.
+const GEMINI_BASE = process.env.GEMINI_API_BASE ?? "https://generativelanguage.googleapis.com/v1beta/models";
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
 
 type GeminiResponse = {
@@ -23,7 +25,7 @@ export async function generateCaptionsWithGemini({
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+    `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`,
     {
       method: "POST",
       headers: {
@@ -104,7 +106,7 @@ export async function generateImageWithGemini(
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent`,
+    `${GEMINI_BASE}/${GEMINI_IMAGE_MODEL}:generateContent`,
     {
       method: "POST",
       headers: {

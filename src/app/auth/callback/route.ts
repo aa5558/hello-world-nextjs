@@ -10,7 +10,16 @@ export async function GET(request: Request) {
   const next = safeNext(searchParams.get("next"));
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=missing_code`);
+    // Supabase sends people back with an error instead of a code when their
+    // account couldn't be created, which is what the signup allowlist does
+    // to emails it doesn't recognize.
+    const description = searchParams.get("error_description") ?? "";
+    if (/saving new user|signup_not_allowed/i.test(description)) {
+      return NextResponse.redirect(`${origin}/login?error=signup_blocked`);
+    }
+    return NextResponse.redirect(
+      `${origin}/login?error=${searchParams.get("error") ? "auth" : "missing_code"}`
+    );
   }
 
   const supabase = await createClient();

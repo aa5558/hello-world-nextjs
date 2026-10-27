@@ -9,6 +9,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   missing_code: "That sign-in link was invalid. Please try again.",
 };
 
+type SignupRules = { restricted: boolean; domains: string[] };
+
+function domainList(domains: string[]) {
+  const named = domains.map((d) => `@${d}`);
+  return named.length <= 2 ? named.join(" or ") : `${named.slice(0, -1).join(", ")}, or ${named.at(-1)}`;
+}
+
 const PERKS = [
   ["🗳️", "Vote blind, then see who really wrote it"],
   ["✍️", "Throw your own captions into the ring"],
@@ -28,6 +35,11 @@ export default async function LoginPage(props: PageProps<"/login">) {
   if (user) {
     redirect(next);
   }
+
+  // Missing before the access migration is applied: then signups are open.
+  const { data: rulesData } = await supabase.rpc("signup_rules");
+  const rules = (rulesData as SignupRules | null) ?? { restricted: false, domains: [] };
+  const gated = rules.restricted && rules.domains.length > 0;
 
   return (
     <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
@@ -62,7 +74,11 @@ export default async function LoginPage(props: PageProps<"/login">) {
           </div>
           {error && (
             <p role="alert" className="rounded-[18px] bg-down-soft px-4 py-3 text-sm text-down-ink">
-              {ERROR_MESSAGES[error] ?? "Something went wrong. Please try again."}
+              {error === "signup_blocked"
+                ? gated
+                  ? `New accounts are limited to ${domainList(rules.domains)} emails right now. Sign in with your school Google account, or ask an admin to add your email.`
+                  : "We couldn't create an account for that email. Try your school Google account, or ask an admin to add you."
+                : (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.")}
             </p>
           )}
           <form action={signInWithGoogle}>
@@ -74,6 +90,12 @@ export default async function LoginPage(props: PageProps<"/login">) {
               Continue with Google
             </button>
           </form>
+          {gated && error !== "signup_blocked" && (
+            <p className="rounded-[18px] bg-powder px-4 py-3 text-sm text-ink">
+              🎓 New here? Use your {domainList(rules.domains)} Google account. Already have an account? Any
+              Google login you&apos;ve used before still works.
+            </p>
+          )}
           <p className="text-xs leading-relaxed text-ink-3">
             Classmates only ever see vote totals, never how you voted.
           </p>

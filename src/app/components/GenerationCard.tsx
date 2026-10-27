@@ -105,7 +105,7 @@ export function GenerationCard({
               ✍️ Sign in to add your own caption
             </Link>
           ) : captionForm === "open" ? (
-            <div className="rounded-[22px] bg-background p-4 ring-1 ring-line">
+            <div id="add-caption" className="scroll-mt-28 rounded-[22px] bg-background p-4 ring-1 ring-line">
               <AddCaptionForm generationId={generation.id} />
             </div>
           ) : (

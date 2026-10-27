@@ -3,10 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { timeAgo } from "@/app/components/GenerationCard";
 import { Icon } from "@/app/components/Icon";
-import { EmptyCard, PageHero } from "@/app/components/PageHero";
+import { EmptyCard } from "@/app/components/PageHero";
 import { PostOwnerControls } from "@/app/components/PostOwnerControls";
 import { RevealBadge } from "@/app/components/RevealBadge";
 import { getMyCaptions } from "@/lib/battles";
+import { getAchievements, getEra } from "@/lib/era";
 import { VIBES, VIBE_EMOJI, isVibe } from "@/lib/captions";
 import { getFeed } from "@/lib/feed";
 import { createClient } from "@/lib/supabase/server";
@@ -14,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "My Posts — Morningside Memes",
+  title: "Your Meme Era — Morningside Memes",
 };
 
 function Stat({ label, value, tone = "white" }: { label: string; value: string | number; tone?: "white" | "ice" }) {
@@ -47,10 +48,15 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
     redirect("/login?next=/me");
   }
 
-  const [{ generations: photos, error }, myCaptions] = await Promise.all([
+  const [{ generations: photos, error }, myCaptions, { count: votesCast }, { data: profile }] = await Promise.all([
     getFeed(supabase, { ownerId: user.id, userId: user.id }),
     getMyCaptions(supabase),
+    supabase.from("caption_votes").select("caption_id", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.from("profiles").select("first_name, avatar_url").eq("id", user.id).maybeSingle<{ first_name: string | null; avatar_url: string | null }>(),
   ]);
+  const era = getEra(photos, myCaptions);
+  const achievements = getAchievements(photos, myCaptions, votesCast ?? 0);
+  const unlocked = achievements.filter((a) => a.unlocked).length;
 
   const captionWins = myCaptions.filter((c) => c.rank === 1 && c.score > 0).length;
   const captionPoints = myCaptions.reduce((sum, c) => sum + c.score, 0);
@@ -58,21 +64,59 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pt-8 sm:px-6 sm:pt-12">
-      <PageHero
-        eyebrow="my posts"
-        title={
-          <>
-            Your <span className="serif">era,</span> archived.
-          </>
-        }
-        description="Your photos, your captions, and how they're doing against Gemini."
-      />
+      <section className="animate-fade-up relative overflow-hidden rounded-[36px] bg-ink p-6 text-white sm:p-10">
+        <span aria-hidden className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-sky/40 blur-3xl" />
+        <span aria-hidden className="absolute -bottom-24 left-10 h-56 w-56 rounded-full bg-ai/25 blur-3xl" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+          {profile?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-[26px] object-cover ring-4 ring-white/15" />
+          ) : (
+            <span className="orb flex h-20 w-20 items-center justify-center rounded-[26px] text-4xl">{era.emoji}</span>
+          )}
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow !text-white/60">{profile?.first_name ? `${profile.first_name}, you're in your` : "you're in your"}</p>
+            <h1 className="display text-4xl sm:text-6xl">
+              {era.emoji} <span className="serif">{era.name}</span>
+            </h1>
+            <p className="text-sm text-white/70">Based on {era.basis}.</p>
+          </div>
+        </div>
+      </section>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Photos posted" value={photos.length} />
         <Stat label="Captions written" value={myCaptions.length} />
         <Stat label="Net votes on your captions" value={signed(captionPoints)} tone="ice" />
         <Stat label="Photos you're #1 on" value={captionWins} />
+      </section>
+
+      <section aria-labelledby="achievements" className="flex flex-col gap-3">
+        <div className="flex items-end justify-between gap-3">
+          <h2 id="achievements" className="display text-3xl">
+            Achievements <span className="serif text-ink-2">{unlocked}/{achievements.length}</span>
+          </h2>
+          <p className="text-xs text-ink-3">earned from what you&apos;ve actually done</p>
+        </div>
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {achievements.map((a) => (
+            <li
+              key={a.key}
+              className={`flex flex-col gap-2 rounded-[22px] p-3 transition ${
+                a.unlocked ? "bg-white shadow-[0_14px_30px_-20px_rgba(22,38,61,0.4)] ring-1 ring-line" : "bg-powder/50 text-ink-3"
+              }`}
+            >
+              <span aria-hidden className={`flex h-10 w-10 items-center justify-center rounded-[14px] text-xl ${a.unlocked ? "orb" : "bg-white/70 grayscale"}`}>
+                {a.emoji}
+              </span>
+              <span className={`text-sm font-semibold leading-tight ${a.unlocked ? "text-ink" : ""}`}>{a.title}</span>
+              <span className="text-[11px] leading-snug">{a.body}</span>
+              <span className={`chip mt-auto self-start ${a.unlocked ? "bg-human-soft text-human-ink" : "bg-white/70"}`}>
+                {a.unlocked ? "✓ unlocked" : a.progress}
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {best && best.score > 0 && (
