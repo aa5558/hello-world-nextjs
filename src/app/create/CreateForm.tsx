@@ -39,7 +39,11 @@ export function CreateForm({
   dailyDrop,
   library,
   initialImageId,
+  submissionId,
 }: {
+  // One id per form, used as the new post's id, so submitting twice can't
+  // create two posts.
+  submissionId: string;
   aiPhotosEnabled: boolean;
   dailyDrop: LibraryImage | null;
   library: LibraryImage[];
@@ -111,6 +115,7 @@ export function CreateForm({
       <input type="hidden" name="source" value={source} />
       {source === "library" && libraryId && <input type="hidden" name="library_image" value={libraryId} />}
       <input type="hidden" name="vibe" value={vibe} />
+      <input type="hidden" name="submission_id" value={submissionId} />
 
       <div className="flex min-w-0 flex-col gap-8">
         {/* 01 Photo */}

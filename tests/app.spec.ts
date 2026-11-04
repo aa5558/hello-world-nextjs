@@ -326,7 +326,9 @@ test.describe("signed in", () => {
       await expect(alert).toContainText("Your photo wasn't posted");
       await expect(alert).toContainText("you can still caption and vote");
       await expect(page).toHaveURL(/\/create$/);
-      expect((await geminiCalls()).length - callsBefore).toBe(1); // a quota error isn't retried
+      // Free-tier quotas are per model: each model is tried exactly once, none retried.
+      const calls = (await geminiCalls()).slice(callsBefore);
+      expect(calls.length).toBe(new Set(calls.map((c) => c.model)).size); // a quota error isn't retried
       const [{ n: after }] = await sql<{ n: number }>(`select count(*) n from public.generations where user_id = $1`, [USERS[11].id]);
       expect(after).toBe(before);
       const [run] = await sql<{ status: string; http_status: number }>(
@@ -358,20 +360,78 @@ test.describe("signed in", () => {
     }
   });
 
-  test("Gemini overloaded: retried, then a clear 'try again in a minute' message", async ({ page, context }) => {
+  test("every Gemini model overloaded: bounded retries, then a clear 'try again' message and no post", async ({ page, context }) => {
     test.skip(realGemini, "uses the Gemini stand-in");
     await signIn(context, USERS[11]);
     await gemini("overloaded");
     try {
+      const [{ n: postsBefore }] = await sql<{ n: number }>(`select count(*)::int n from public.generations where user_id = $1`, [USERS[11].id]);
       const callsBefore = (await geminiCalls()).length;
       await page.goto("/create");
       await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
       await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
-      await expect(page.locator("main").getByRole("alert")).toContainText("overloaded right now", { timeout: 30_000 });
-      expect((await geminiCalls()).length - callsBefore).toBe(3); // first try + 2 retries
+      await expect(page.locator("main").getByRole("alert")).toContainText("overloaded, even after retrying", { timeout: 60_000 });
+      const calls = (await geminiCalls()).slice(callsBefore);
+      // Every callable model was tried, a bounded number of times.
+      expect(new Set(calls.map((c) => c.model)).size).toBe(3);
+      expect(calls.length).toBeLessThanOrEqual(9);
+      const [{ n: postsAfter }] = await sql<{ n: number }>(`select count(*)::int n from public.generations where user_id = $1`, [USERS[11].id]);
+      expect(postsAfter).toBe(postsBefore);
     } finally {
       await gemini("ok");
     }
+  });
+
+  test("the main model overloaded: captions come from a fallback model automatically", async ({ page, context }) => {
+    test.skip(realGemini, "uses the Gemini stand-in");
+    await signIn(context, USERS[10]);
+    await fetch(`${MOCK}/__debug/gemini`, { method: "POST", body: JSON.stringify({ model: "gemini-flash-latest", mode: "overloaded" }) });
+    try {
+      await page.goto("/create");
+      await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
+      await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
+      await page.waitForURL(/\/g\/[0-9a-f-]{36}\?new=1$/, { timeout: 60_000 });
+      const postId = page.url().match(/\/g\/([0-9a-f-]{36})/)![1];
+      const [run] = await sql<{ id: string; status: string; caption_ids: string[] }>(
+        `select id, status, caption_ids from public.generation_requests where generation_id = $1`, [postId]);
+      expect(run.status).toBe("succeeded");
+      expect(run.caption_ids.length).toBe(4);
+      const [call] = await sql<{ model_key: string; attempts: { model: string; outcome: string }[] }>(
+        `select model_key, attempts from public.llm_responses where request_id = $1`, [run.id]);
+      expect(call.model_key).not.toBe("gemini-flash-latest");
+      expect(call.attempts[0]).toMatchObject({ model: "gemini-flash-latest", outcome: "busy" });
+      expect(call.attempts.at(-1)!.outcome).toBe("ok");
+      const [{ n }] = await sql<{ n: number }>(`select count(*)::int n from public.llm_responses where request_id = $1`, [run.id]);
+      expect(n).toBe(1); // one logged row, however many attempts
+      const [{ model }] = await sql<{ model: string }>(`select model from public.generations where id = $1`, [postId]);
+      expect(model).toBe(call.model_key);
+    } finally {
+      await gemini("ok");
+    }
+  });
+
+  test("submitting the same form twice can't create a second post", async ({ page, context }) => {
+    await signIn(context, USERS[8]);
+    // A post that this form submission already created.
+    const [existing] = await sql<{ id: string }>(`select id from public.generations where user_id = $1 limit 1`, [USERS[8].id]);
+    const [{ n: postsBefore }] = await sql<{ n: number }>(`select count(*)::int n from public.generations where user_id = $1`, [USERS[8].id]);
+    const [{ n: runsBefore }] = await sql<{ n: number }>(`select count(*)::int n from public.generation_requests where user_id = $1`, [USERS[8].id]);
+    const callsBefore = (await geminiCalls()).length;
+    await page.goto("/create");
+    await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
+    await expect(page.getByRole("button", { name: "Let the AI cook ✨" })).toBeEnabled();
+    // Replay the id of a submission that already produced a post, right
+    // before submitting (React re-renders reset the hidden field earlier).
+    await page.locator("form").evaluate((form, id) => {
+      (form.querySelector('input[name="submission_id"]') as HTMLInputElement).value = id;
+      form.requestSubmit();
+    }, existing.id);
+    await page.waitForURL(new RegExp(`/g/${existing.id}\\?new=1$`));
+    const [{ n: postsAfter }] = await sql<{ n: number }>(`select count(*)::int n from public.generations where user_id = $1`, [USERS[8].id]);
+    const [{ n: runsAfter }] = await sql<{ n: number }>(`select count(*)::int n from public.generation_requests where user_id = $1`, [USERS[8].id]);
+    expect(postsAfter).toBe(postsBefore);
+    expect(runsAfter).toBe(runsBefore);
+    expect((await geminiCalls()).length).toBe(callsBefore);
   });
 
   test("when the model can't run, the post fails cleanly and the run is logged", async ({ page, context }) => {

@@ -59,6 +59,22 @@ export async function createGeneration(
     return { error: "Pick a voice for your captions." };
   }
 
+  // Idempotency: the form's one-time id becomes the post's id. If this
+  // submission already produced a post (a double submit, or a retry after a
+  // dropped connection), go to it instead of captioning again.
+  const submissionId = formData.get("submission_id");
+  const postId =
+    typeof submissionId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(submissionId)
+      ? submissionId
+      : crypto.randomUUID();
+  {
+    const { data: existing } = await supabase.from("generations").select("id, user_id").eq("id", postId).maybeSingle();
+    if (existing) {
+      if (existing.user_id !== user.id) return { error: "Something went wrong. Reload the page and try again." };
+      redirect(`/g/${postId}?new=1`);
+    }
+  }
+
   const image = formData.get("image") as File | null;
   if (source === "upload") {
     if (!image || image.size === 0) {
@@ -183,6 +199,7 @@ export async function createGeneration(
   const { data: generation, error: generationError } = await supabase
     .from("generations")
     .insert({
+      id: postId,
       user_id: user.id,
       image_path: imagePath,
       image_source: source === "ai" ? "ai" : "upload",
@@ -200,6 +217,12 @@ export async function createGeneration(
 
   if (generationError || !generation) {
     await supabase.storage.from("generations").remove([imagePath]);
+    // Another request with the same submission id won the race: that post
+    // exists, so this one stops without creating a second.
+    if (generationError?.code === "23505") {
+      await finishCaptionRequest(supabase, requestId, false, "Duplicate submission; the first one was posted.");
+      redirect(`/g/${postId}?new=1`);
+    }
     return fail("Couldn't save your post. Please try again.");
   }
 

@@ -8,7 +8,7 @@ import { CreateForm } from "./CreateForm";
 
 export const dynamic = "force-dynamic";
 // Generating an AI photo and then captioning it can take a while.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export const metadata: Metadata = {
   title: "Meme Studio — Morningside Memes",
@@ -50,6 +50,7 @@ export default async function CreatePage(props: PageProps<"/create">) {
       </header>
       <div className="animate-fade-up [animation-delay:100ms]">
         <CreateForm
+          submissionId={crypto.randomUUID()}
           aiPhotosEnabled={AI_PHOTOS_ENABLED}
           dailyDrop={dailyDrop}
           library={choices}
