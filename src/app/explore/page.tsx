@@ -26,7 +26,7 @@ export default async function ExplorePage(props: PageProps<"/explore">) {
 
   return (
     <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-3xl flex-col items-center gap-5 px-5 pb-12 pt-20 sm:px-8 sm:pt-24">
-      <nav aria-label="Order" className="flex gap-4 text-sm">
+      <nav aria-label="Order" className="flex gap-2">
         {(
           [
             ["new", "fresh"],
@@ -37,7 +37,7 @@ export default async function ExplorePage(props: PageProps<"/explore">) {
             key={key}
             href={key === "new" ? "/explore" : "/explore?sort=top"}
             aria-current={sort === key ? "page" : undefined}
-            className={`underline-offset-4 transition ${sort === key ? "text-ink underline decoration-punch decoration-2" : "text-ink-3 hover:text-ink"}`}
+            className={`chip-neon glow-violet ${sort === key ? "[border-color:rgba(var(--glow),0.95)] shadow-[0_0_22px_-4px_rgba(var(--glow),0.9)]" : "opacity-60 hover:opacity-100"}`}
           >
             {label}
           </Link>

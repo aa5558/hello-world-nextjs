@@ -21,10 +21,10 @@ const SEEN_MAX = 6;
 const UUID = /^[0-9a-f-]{36}$/i;
 type Mode = "duel" | "guess" | "turn";
 
-const MODES: { mode: Mode; label: string; href: string }[] = [
-  { mode: "duel", label: "which one's funnier?", href: "/play" },
-  { mode: "guess", label: "human or ai?", href: "/play?mode=guess" },
-  { mode: "turn", label: "your turn", href: "/play?mode=turn" },
+const MODES: { mode: Mode; label: string; href: string; glow: string }[] = [
+  { mode: "duel", label: "showdown", href: "/play", glow: "glow-cyan" },
+  { mode: "guess", label: "human or ai?", href: "/play?mode=guess", glow: "glow-violet" },
+  { mode: "turn", label: "open mic", href: "/play?mode=turn", glow: "glow-gold" },
 ];
 
 function shuffle<T>(items: T[]) {
@@ -114,15 +114,15 @@ export default async function PlayPage(props: PageProps<"/play">) {
 
   return (
     <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-5xl flex-col items-center gap-6 px-5 pb-12 pt-20 text-center sm:gap-8 sm:px-8 sm:pt-24">
-      <nav aria-label="Play modes" className="flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm">
+      <nav aria-label="Play modes" className="flex flex-wrap justify-center gap-2">
         {MODES.map((m) => (
           <Link
             key={m.mode}
             href={m.href}
             aria-current={mode === m.mode ? "page" : undefined}
-            className={`underline-offset-4 transition ${mode === m.mode ? "text-ink underline decoration-punch decoration-2" : "text-ink-3 hover:text-ink"}`}
+            className={`chip-neon ${m.glow} ${mode === m.mode ? "shadow-[0_0_22px_-4px_rgba(var(--glow),0.9)] [border-color:rgba(var(--glow),0.95)]" : "opacity-60 hover:opacity-100"}`}
           >
-            {m.label}
+            <span className={`tube ${m.glow} text-[11px]`}>{m.label}</span>
           </Link>
         ))}
       </nav>
@@ -134,7 +134,7 @@ export default async function PlayPage(props: PageProps<"/play">) {
 function Empty({ title, body, href, action }: { title: string; body: string; href: string; action: string }) {
   return (
     <div className="flex flex-col items-center gap-6">
-      <h1 className="word text-6xl sm:text-8xl">{title}</h1>
+      <h1 className="word glow-cyan text-6xl sm:text-8xl">{title}</h1>
       <p className="max-w-sm text-lg text-ink-2">{body}</p>
       <Action href={href}>{action}</Action>
     </div>

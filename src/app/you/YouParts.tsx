@@ -14,7 +14,7 @@ import { HUMAN_CAPTION_MAX } from "@/lib/captions";
 // that).
 export function MyCaptionList({ captions }: { captions: MyCaption[] }) {
   return (
-    <ul className="flex w-full max-w-xl flex-col gap-2 text-left">
+    <ul className="grid w-full max-w-3xl gap-4 text-left sm:grid-cols-2">
       {captions.map((c, i) => (
         <MyCaptionRow key={c.id} caption={c} delay={i * 50} />
       ))}
@@ -30,14 +30,18 @@ function MyCaptionRow({ caption, delay }: { caption: MyCaption; delay: number })
   const [pending, startTransition] = useTransition();
 
   return (
-    <li className="rise flex items-center gap-4 rounded-[22px] bg-white p-3 pr-3 ring-1 ring-line" style={{ animationDelay: `${delay}ms` }}>
+    // An illuminated note pinned to the dressing-room wall.
+    <li
+      className={`rise panel lit ${["glow-green", "glow-cyan", "glow-pink", "glow-violet"][Math.round(delay / 50) % 4]} flex items-center gap-4 rounded-[20px] p-3 pr-3`}
+      style={{ animationDelay: `${delay}ms`, transform: `rotate(${[-1.2, 0.9, -0.6, 1.3][Math.round(delay / 50) % 4]}deg)` }}
+    >
       <Link href={`/g/${caption.generationId}`} className="shrink-0" aria-label="Open the meme">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={caption.imageUrl} alt="" className="h-14 w-14 rounded-2xl object-cover" />
       </Link>
       <span className="min-w-0 flex-1">
-        <span className="block text-[16px] leading-snug text-ink">“{caption.text}”</span>
-        <span className="mt-1 block text-xs text-ink-3">
+        <span className="block text-[16px] leading-snug text-white">“{caption.text}”</span>
+        <span className="tube glow-green mt-1 block text-[10px]">
           #{caption.rank} of {caption.total} on its photo · {caption.score > 0 ? `+${caption.score}` : caption.score}
         </span>
         {error && (
@@ -80,10 +84,10 @@ function MyCaptionRow({ caption, delay }: { caption: MyCaption; delay: number })
             onChange={(e) => setDraft(e.target.value)}
             maxLength={HUMAN_CAPTION_MAX}
             rows={3}
-            className="resize-none rounded-2xl bg-white p-4 text-lg outline-none ring-1 ring-line focus:ring-ink/40"
+            className="field resize-none text-lg"
           />
           <p className="text-xs text-ink-3">You can edit until someone votes on it.</p>
-          <button type="submit" disabled={pending} className="self-start rounded-full bg-ink px-6 py-3 font-medium text-white disabled:opacity-40">
+          <button type="submit" disabled={pending} className="btn-neon glow-cyan self-start !py-3">
             {pending ? "Saving…" : "Save"}
           </button>
         </form>
@@ -102,11 +106,11 @@ function MyCaptionRow({ caption, delay }: { caption: MyCaption; delay: number })
                 router.refresh();
               })
             }
-            className="rounded-full bg-down-ink px-6 py-3 font-medium text-white disabled:opacity-40"
+            className="btn-neon self-start !py-3 [--glow:255,122,138]"
           >
             {pending ? "Deleting…" : "Delete caption"}
           </button>
-          <button type="button" onClick={() => setSheet("none")} className="rounded-full px-6 py-3 ring-1 ring-line">
+          <button type="button" onClick={() => setSheet("none")} className="chip-neon glow-violet !px-6 !py-3">
             Keep it
           </button>
         </div>
@@ -127,9 +131,9 @@ export function AccountForm({ firstName, lastName, avatarUrl }: { firstName: str
       <label htmlFor="avatar" className="group relative cursor-pointer">
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt="Profile photo" className="h-24 w-24 rounded-full object-cover ring-4 ring-white transition group-hover:opacity-80" />
+          <img src={preview} alt="Profile photo" className="h-24 w-24 rounded-full object-cover ring-2 ring-green/70 shadow-[0_0_24px_-4px_#a3ff47] transition group-hover:opacity-80" />
         ) : (
-          <span className="flex h-24 w-24 items-center justify-center rounded-full bg-white text-sm text-ink-3 ring-1 ring-line transition group-hover:ring-ink/30">
+          <span className="tube glow-green flex h-24 w-24 items-center justify-center rounded-full border border-green/40 text-[10px] transition group-hover:border-green">
             add photo
           </span>
         )}
@@ -153,7 +157,7 @@ export function AccountForm({ firstName, lastName, avatarUrl }: { firstName: str
             id="first_name"
             name="first_name"
             defaultValue={firstName}
-            className="border-0 border-b-[1.5px] border-ink/15 bg-transparent px-1 py-2 text-xl text-ink outline-none focus:border-ink"
+            className="neon-input !text-left text-xl"
           />
         </label>
         <label className="flex flex-col gap-1 text-left text-xs text-ink-3">
@@ -162,7 +166,7 @@ export function AccountForm({ firstName, lastName, avatarUrl }: { firstName: str
             id="last_name"
             name="last_name"
             defaultValue={lastName}
-            className="border-0 border-b-[1.5px] border-ink/15 bg-transparent px-1 py-2 text-xl text-ink outline-none focus:border-ink"
+            className="neon-input !text-left text-xl"
           />
         </label>
       </div>
@@ -179,7 +183,7 @@ export function AccountForm({ firstName, lastName, avatarUrl }: { firstName: str
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-lg font-medium text-white transition hover:scale-[1.03] active:scale-[0.97] disabled:opacity-40"
+        className="btn-neon glow-green"
       >
         {pending ? "Saving…" : "Save profile"}
       </button>

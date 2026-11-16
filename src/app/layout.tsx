@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Neonderthaw, Tilt_Neon } from "next/font/google";
 import { Menu } from "@/app/components/Menu";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
@@ -10,27 +10,28 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// The one big word on each screen.
-const instrument = Instrument_Serif({
-  variable: "--font-instrument",
+// Neon script for the signs.
+const neonderthaw = Neonderthaw({
+  variable: "--font-neonderthaw",
   subsets: ["latin"],
   weight: "400",
-  style: ["italic", "normal"],
+});
+
+// Tube capitals for labels and buttons (its XROT/YROT axes tilt the letters).
+const tiltNeon = Tilt_Neon({
+  variable: "--font-tilt-neon",
+  subsets: ["latin"],
+  axes: ["XROT", "YROT"],
 });
 
 export const metadata: Metadata = {
-  title: "Morningside Memes",
+  title: "Morningside · memes after dark",
   description:
     "Make something funny. Turn a campus moment into a meme, let the AI write captions, then play: which one's funnier?",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf8f5",
+  themeColor: "#05060d",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -42,7 +43,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${instrument.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${neonderthaw.variable} ${tiltNeon.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <Suspense fallback={null}>

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Sparkles } from "@/app/components/Sparkles";
 import { Quiet, Sheet, SheetItem } from "@/app/components/ui";
+import { Tilt } from "@/app/components/Tilt";
+import { play } from "@/lib/sound";
 import { deleteCaption, editCaption, submitCaption, type CaptionFormState } from "@/app/captions/actions";
 import { deletePost, updatePostContext } from "@/app/posts/actions";
 import { castVote } from "@/app/votes/actions";
@@ -88,9 +90,9 @@ export function ExploreDeck({
   if (!item) {
     return (
       <div className="flex flex-col items-center gap-6">
-        <h1 className="word text-6xl sm:text-8xl">Nothing here yet.</h1>
+        <h1 className="word glow-violet text-6xl sm:text-8xl">The gallery is empty.</h1>
         <p className="text-lg text-ink-2">Be the first. It takes about a minute.</p>
-        <Link href={emptyHref} className="inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-lg font-medium text-white transition hover:scale-[1.03]">
+        <Link href={emptyHref} className="btn-neon glow-pink">
           Make one <span aria-hidden>→</span>
         </Link>
       </div>
@@ -103,8 +105,10 @@ export function ExploreDeck({
         key={item.id}
         className={`flex w-full flex-col items-center gap-5 ${direction === "next" ? "slide-next" : "slide-prev"}`}
       >
+        {/* The gallery: the current meme lit in front, its neighbours hanging
+            further back in the dark (tap them to walk over). */}
         <figure
-          className="relative w-full"
+          className="relative flex w-full flex-col items-center [perspective:1400px]"
           onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
           onTouchEnd={(e) => {
             if (touchX.current === null) return;
@@ -113,13 +117,44 @@ export function ExploreDeck({
             if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.imageUrl}
-            alt={item.context ?? item.dailyPrompt ?? "A campus photo"}
-            className="mx-auto max-h-[46svh] w-auto max-w-full rounded-[28px] object-contain shadow-[0_40px_80px_-40px_rgba(22,21,20,0.45)]"
-          />
-          <figcaption className="mt-3 text-sm text-ink-3">
+          {items.length > 1 && (
+            <>
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-hidden
+                onClick={() => go(-1)}
+                className="frame glow-violet absolute left-0 top-1/2 hidden w-40 -translate-y-1/2 opacity-30 blur-[1px] transition duration-500 [transform:translateY(-50%)_rotateY(38deg)_translateZ(-160px)] hover:opacity-60 lg:block"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={items[(index - 1 + items.length) % items.length].imageUrl} alt="" className="aspect-[4/5] w-full rounded-[10px] object-cover" />
+              </button>
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-hidden
+                onClick={() => go(1)}
+                className="frame glow-violet absolute right-0 top-1/2 hidden w-40 -translate-y-1/2 opacity-30 blur-[1px] transition duration-500 [transform:translateY(-50%)_rotateY(-38deg)_translateZ(-160px)] hover:opacity-60 lg:block"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={items[(index + 1) % items.length].imageUrl} alt="" className="aspect-[4/5] w-full rounded-[10px] object-cover" />
+              </button>
+            </>
+          )}
+          <div className="relative">
+            <span aria-hidden className="spotlight" />
+            <Tilt className="rounded-[22px]" max={7} lift={16} light="violet">
+              <div className="frame glow-violet">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.imageUrl}
+                  alt={item.context ?? item.dailyPrompt ?? "A campus photo"}
+                  className="max-h-[42svh] w-auto max-w-[78vw] rounded-[12px] object-contain lg:max-w-[440px]"
+                />
+              </div>
+            </Tilt>
+          </div>
+          <figcaption className="tube glow-violet mt-4 text-[10px]">
             {[item.context, item.dailyPrompt && `“${item.dailyPrompt}”`, isVibe(item.vibe) ? VIBES[item.vibe].label.toLowerCase() : null]
               .filter(Boolean)
               .join(" · ")}
@@ -144,28 +179,28 @@ export function ExploreDeck({
           type="button"
           onClick={() => go(-1)}
           aria-label="Previous meme"
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-lg ring-1 ring-line transition hover:ring-ink/30 active:scale-95"
+          className="btn-neon glow-violet !h-12 !w-12 !p-0 text-lg"
         >
           ←
         </button>
-        <button type="button" onClick={() => setOverview(true)} className="min-w-16 text-sm tabular-nums text-ink-3 hover:text-ink">
+        <button type="button" onClick={() => setOverview(true)} className="tube glow-violet min-w-16 text-xs tabular-nums">
           {index + 1} / {items.length}
         </button>
         <button
           type="button"
           onClick={() => go(1)}
           aria-label="Next meme"
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-lg text-white transition hover:scale-105 active:scale-95"
+          className="btn-neon glow-cyan !h-12 !w-12 !p-0 text-lg"
         >
           →
         </button>
       </nav>
 
       {overview && (
-        <div role="dialog" aria-modal="true" aria-label="All memes" className="screen-in fixed inset-0 z-50 overflow-y-auto bg-background px-5 pb-10 pt-6 sm:px-8">
+        <div role="dialog" aria-modal="true" aria-label="All memes" className="screen-in fixed inset-0 z-50 overflow-y-auto bg-background/95 px-5 pb-10 pt-6 backdrop-blur-md sm:px-8">
           <div className="mx-auto flex max-w-5xl items-center justify-between pb-6">
             <p className="text-sm text-ink-3">{items.length} memes</p>
-            <button type="button" onClick={() => setOverview(false)} className="rounded-full px-4 py-2 text-sm ring-1 ring-line hover:bg-white">
+            <button type="button" onClick={() => setOverview(false)} className="chip-neon glow-violet">
               Close
             </button>
           </div>
@@ -179,10 +214,10 @@ export function ExploreDeck({
                     setCurrentId(g.id);
                     setOverview(false);
                   }}
-                  className={`block w-full overflow-hidden rounded-[20px] transition hover:scale-[1.02] ${g.id === item.id ? "ring-2 ring-punch ring-offset-2 ring-offset-background" : ""}`}
+                  className={`frame block w-full overflow-hidden !p-1.5 transition hover:scale-[1.03] ${g.id === item.id ? "glow-pink" : "glow-violet"}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={g.imageUrl} alt={g.context ?? "A campus photo"} loading="lazy" className="aspect-square w-full object-cover" />
+                  <img src={g.imageUrl} alt={g.context ?? "A campus photo"} loading="lazy" className="aspect-square w-full rounded-[10px] object-cover" />
                 </button>
               </li>
             ))}
@@ -245,7 +280,7 @@ function Meme({
             <button
               type="button"
               onClick={() => setWriting(true)}
-              className="rounded-full bg-white px-5 py-3 text-[15px] font-medium text-ink ring-1 ring-line transition hover:ring-ink/30 active:scale-[0.97]"
+              className="btn-neon glow-gold !px-5 !py-3 !text-sm"
             >
               Write yours
             </button>
@@ -287,9 +322,9 @@ function Meme({
             onChange={(e) => setContextDraft(e.target.value)}
             maxLength={200}
             placeholder="e.g. 2am in Butler"
-            className="border-0 border-b-[1.5px] border-ink/15 bg-transparent px-1 py-3 text-xl outline-none focus:border-ink"
+            className="neon-input !text-left text-xl"
           />
-          <button type="submit" disabled={pending} className="self-start rounded-full bg-ink px-6 py-3 font-medium text-white disabled:opacity-40">
+          <button type="submit" disabled={pending} className="btn-neon glow-cyan self-start !py-3">
             {pending ? "Saving…" : "Save"}
           </button>
         </form>
@@ -309,11 +344,11 @@ function Meme({
                 onDeleted();
               })
             }
-            className="rounded-full bg-down-ink px-6 py-3 font-medium text-white disabled:opacity-40"
+            className="btn-neon self-start !py-3 [--glow:255,122,138]"
           >
             {pending ? "Deleting…" : "Delete post"}
           </button>
-          <button type="button" onClick={() => setSheet("none")} className="rounded-full px-6 py-3 ring-1 ring-line">
+          <button type="button" onClick={() => setSheet("none")} className="chip-neon glow-violet !px-6 !py-3">
             Keep it
           </button>
         </div>
@@ -346,6 +381,7 @@ function CaptionLine({ caption, signedIn, delay }: { caption: FeedCaption; signe
     }
     const next = state.vote === v ? 0 : v;
     const had = Boolean(state.reveal);
+    play(next === 0 ? "select" : "vote");
     startTransition(async () => {
       const res = await castVote(caption.id, next);
       if ("error" in res) return setError(res.error);
@@ -357,12 +393,12 @@ function CaptionLine({ caption, signedIn, delay }: { caption: FeedCaption; signe
 
   return (
     <li
-      className={`rise relative flex items-center gap-3 rounded-[22px] bg-white px-4 py-3.5 ring-1 transition sm:px-5 ${state.vote === 1 ? "glow ring-transparent" : "ring-line"}`}
+      className={`rise panel relative flex items-center gap-3 rounded-[22px] px-4 py-3.5 transition sm:px-5 ${state.vote === 1 ? "lit glow-pink" : state.vote === -1 ? "lit glow-violet" : ""}`}
       style={{ animationDelay: `${delay}ms` }}
     >
       {justRevealed && <Sparkles />}
       <div className="min-w-0 flex-1">
-        <p className="text-[17px] leading-snug text-ink">“{caption.text}”</p>
+        <p className="text-[17px] leading-snug text-white">“{caption.text}”</p>
         <p className="mt-1 text-xs text-ink-3">
           {state.reveal ? (
             <span className={`inline-flex items-center gap-1.5 ${justRevealed ? "rise" : ""}`}>
@@ -392,7 +428,7 @@ function CaptionLine({ caption, signedIn, delay }: { caption: FeedCaption; signe
             disabled={pending}
             aria-label="Upvote"
             aria-pressed={state.vote === 1}
-            className={`flex h-8 w-9 items-center justify-center rounded-full transition hover:bg-powder active:scale-90 ${state.vote === 1 ? "text-punch" : "text-ink-3"}`}
+            className={`flex h-8 w-9 items-center justify-center rounded-full transition hover:bg-panel-2 active:scale-90 ${state.vote === 1 ? "text-pink [text-shadow:0_0_10px_#ff3cac]" : "text-ink-3"}`}
           >
             ▲
           </button>
@@ -405,7 +441,7 @@ function CaptionLine({ caption, signedIn, delay }: { caption: FeedCaption; signe
             disabled={pending}
             aria-label="Downvote"
             aria-pressed={state.vote === -1}
-            className={`flex h-8 w-9 items-center justify-center rounded-full transition hover:bg-powder active:scale-90 ${state.vote === -1 ? "text-ink" : "text-ink-3"}`}
+            className={`flex h-8 w-9 items-center justify-center rounded-full transition hover:bg-panel-2 active:scale-90 ${state.vote === -1 ? "text-violet [text-shadow:0_0_10px_#a46bff]" : "text-ink-3"}`}
           >
             ▼
           </button>
@@ -435,10 +471,10 @@ function CaptionLine({ caption, signedIn, delay }: { caption: FeedCaption; signe
             onChange={(e) => setDraft(e.target.value)}
             maxLength={HUMAN_CAPTION_MAX}
             rows={3}
-            className="resize-none rounded-2xl bg-white p-4 text-lg outline-none ring-1 ring-line focus:ring-ink/40"
+            className="field resize-none text-lg"
           />
           <p className="text-xs text-ink-3">You can edit until someone votes on it.</p>
-          <button type="submit" disabled={pending} className="self-start rounded-full bg-ink px-6 py-3 font-medium text-white disabled:opacity-40">
+          <button type="submit" disabled={pending} className="btn-neon glow-cyan self-start !py-3">
             {pending ? "Saving…" : "Save"}
           </button>
         </form>
@@ -457,11 +493,11 @@ function CaptionLine({ caption, signedIn, delay }: { caption: FeedCaption; signe
                 router.refresh();
               })
             }
-            className="rounded-full bg-down-ink px-6 py-3 font-medium text-white disabled:opacity-40"
+            className="btn-neon self-start !py-3 [--glow:255,122,138]"
           >
             {pending ? "Deleting…" : "Delete caption"}
           </button>
-          <button type="button" onClick={() => setSheet("none")} className="rounded-full px-6 py-3 ring-1 ring-line">
+          <button type="button" onClick={() => setSheet("none")} className="chip-neon glow-violet !px-6 !py-3">
             Keep it
           </button>
         </div>
@@ -489,7 +525,7 @@ export function WriteYours({ generationId, onDone }: { generationId: string; onD
   return (
     <form action={formAction} className="rise flex flex-col items-center gap-4 pt-3">
       <input type="hidden" name="generation_id" value={generationId} />
-      <label htmlFor={`caption-${generationId}`} className="word text-3xl text-ink sm:text-4xl">
+      <label htmlFor={`caption-${generationId}`} className="word glow-gold text-4xl sm:text-5xl">
         Can you beat it?
       </label>
       <input
@@ -501,7 +537,7 @@ export function WriteYours({ generationId, onDone }: { generationId: string; onD
         autoFocus
         aria-label="Your caption"
         placeholder="your caption…"
-        className="w-full border-0 border-b-[1.5px] border-ink/15 bg-transparent px-1 py-3 text-center text-xl text-ink outline-none transition placeholder:text-ink-3/70 focus:border-ink sm:text-2xl"
+        className="neon-input text-xl sm:text-2xl"
       />
       {state.error && (
         <p role="alert" className="text-sm text-down-ink">
@@ -512,7 +548,7 @@ export function WriteYours({ generationId, onDone }: { generationId: string; onD
         <button
           type="submit"
           disabled={pending || text.trim().length === 0}
-          className="inline-flex items-center gap-3 rounded-full bg-ink px-7 py-3.5 text-[17px] font-medium text-white transition hover:scale-[1.03] active:scale-[0.97] disabled:opacity-40"
+          className="btn-neon glow-gold"
         >
           {pending ? "Adding…" : "Add my caption"} <span aria-hidden>→</span>
         </button>

@@ -39,7 +39,8 @@ export default async function LoginPage(props: PageProps<"/login">) {
 
   return (
     <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-2xl flex-col items-center justify-center gap-7 px-5 pb-12 pt-24 text-center sm:px-8">
-      <h1 className="word text-6xl sm:text-8xl">
+      <p className="tube glow-green flicker-on text-xs">members only</p>
+      <h1 className="word glow-pink text-6xl sm:text-8xl">
         <Ink text="Sign in to keep going." />
       </h1>
       <p className="rise max-w-sm text-lg text-ink-2 [animation-delay:500ms]">
@@ -58,7 +59,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
         <input type="hidden" name="next" value={next} />
         <button
           type="submit"
-          className="group inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-lg font-medium text-white transition hover:scale-[1.03] active:scale-[0.97]"
+          className="btn-neon btn-big glow-pink"
         >
           <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5">
             <path fill="#fff" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.2 14.6 2.2 12 2.2 6.6 2.2 2.2 6.6 2.2 12s4.4 9.8 9.8 9.8c5.7 0 9.4-4 9.4-9.6 0-.6-.1-1.1-.2-1.6H12z" />
@@ -71,7 +72,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
           New here? Use your {domainList(rules.domains)} Google account. Already have an account? Any Google login you&apos;ve used before still works.
         </p>
       )}
-      <Link href="/?start=choose" className="text-sm text-ink-3 underline-offset-4 hover:text-ink hover:underline">
+      <Link href="/?start=choose" className="text-sm text-ink-3 underline-offset-4 hover:text-cyan hover:underline">
         not now
       </Link>
     </main>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Sparkles } from "@/app/components/Sparkles";
 import { Ink } from "@/app/components/ui";
+import { CueOnMount } from "@/app/components/CueOnMount";
 import { ExploreDeck } from "@/app/explore/ExploreDeck";
 import { loadResults } from "@/lib/results";
 import { getFeed } from "@/lib/feed";
@@ -54,49 +55,56 @@ export default async function GenerationPage(props: PageProps<"/g/[id]">) {
   // Just posted. The AI's captions were written and the meme published in
   // one step on the server, so this reveals them; there is nothing to pick.
   if (justPosted) {
+    const glows = ["glow-pink", "glow-cyan", "glow-green", "glow-violet"];
+    const step = 650;
+    const done = 900 + generation.captions.length * step;
+    const placement = ["lg:col-start-1 lg:row-start-1", "lg:col-start-3 lg:row-start-1", "lg:col-start-1 lg:row-start-2", "lg:col-start-3 lg:row-start-2"];
     return (
-      <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-3xl flex-col items-center justify-center gap-7 px-5 pb-12 pt-24 text-center sm:px-8">
-        <h1 className="word text-6xl sm:text-8xl">
-          <Ink text="Your meme is live." />
+      <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-6xl flex-col items-center justify-center gap-8 px-5 pb-12 pt-24 text-center sm:px-8">
+        <CueOnMount cue="reveal" delay={800} />
+        <CueOnMount cue="publish" delay={done} />
+        <h1 className="word glow-gold text-5xl sm:text-7xl">
+          <Ink text="Ta-da." />
         </h1>
-        <div className="rise relative" style={{ animationDelay: "250ms" }}>
-          <Sparkles />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={generation.imageUrl}
-            alt={generation.context ?? "Your photo"}
-            className="max-h-[32svh] w-auto max-w-full rounded-[28px] object-contain shadow-[0_40px_80px_-40px_rgba(22,21,20,0.45)]"
-          />
+        {/* The photo in the middle; the AI's captions light up around it. */}
+        <div className="grid w-full items-center gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-x-8">
+          <div className="relative mx-auto lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            <span aria-hidden className="spotlight" />
+            <div className="frame glow-gold rise [animation-delay:200ms]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={generation.imageUrl}
+                alt={generation.context ?? "Your photo"}
+                className="max-h-[34svh] w-auto max-w-[78vw] rounded-[12px] object-contain lg:max-w-[360px]"
+              />
+            </div>
+          </div>
+          <ul aria-label="Captions on your meme" className="contents">
+            {generation.captions.map((caption, i) => (
+              <li
+                key={caption.id}
+                className={`rise panel lit ${glows[i % 4]} relative rounded-[22px] px-5 py-4 text-left ${placement[i] ?? ""}`}
+                style={{ animationDelay: `${900 + i * step}ms` }}
+              >
+                <span className="block text-[17px] leading-snug text-white">“{caption.text}”</span>
+                <span className={`tube ${glows[i % 4]} mt-2 block text-[10px]`}>{caption.reveal?.authorType === "human" ? "you" : "AI"}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        <p className="rise text-sm text-ink-3" style={{ animationDelay: "400ms" }}>
-          The AI wrote {generation.captions.length} captions, and they&apos;re posted with it.
-        </p>
-        <ul aria-label="Captions on your meme" className="flex w-full max-w-xl flex-col gap-2 text-left">
-          {generation.captions.map((caption, i) => (
-            <li
-              key={caption.id}
-              className="rise relative flex items-start justify-between gap-4 rounded-[20px] bg-white px-5 py-4 ring-1 ring-line"
-              style={{ animationDelay: `${600 + i * 260}ms` }}
-            >
-              <span className="text-[17px] leading-snug text-ink">“{caption.text}”</span>
-              <span className="shrink-0 pt-1 text-xs font-medium text-ai-ink">
-                {caption.reveal?.authorType === "human" ? "you" : "AI"}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="rise max-w-sm text-sm text-ink-3" style={{ animationDelay: `${700 + generation.captions.length * 260}ms` }}>
-          Classmates vote on them blind, next to any captions they add.
-        </p>
-        <div className="rise flex flex-col items-center gap-3" style={{ animationDelay: `${800 + generation.captions.length * 260}ms` }}>
-          <Link
-            href="/play"
-            className="group inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-lg font-medium text-white transition hover:scale-[1.03] active:scale-[0.97]"
-          >
-            Want to play? <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+        <div className="rise relative flex flex-col items-center gap-3" style={{ animationDelay: `${done}ms` }}>
+          <Sparkles />
+          <p className="tube glow-gold text-2xl sm:text-3xl">Your meme is live.</p>
+          <p className="max-w-md text-sm text-ink-3">
+            The AI wrote these {generation.captions.length} captions and they&apos;re posted with it. Classmates vote on them blind, next to any captions they add.
+          </p>
+        </div>
+        <div className="rise flex flex-col items-center gap-3" style={{ animationDelay: `${done + 300}ms` }}>
+          <Link href="/play" className="btn-neon btn-big glow-cyan">
+            Take it to the arena <span aria-hidden>→</span>
           </Link>
-          <Link href={`/g/${generation.id}`} className="text-sm text-ink-3 underline-offset-4 hover:text-ink hover:underline">
-            see it in explore, or write your own caption for it
+          <Link href={`/g/${generation.id}`} className="text-sm text-ink-3 underline-offset-4 hover:text-cyan hover:underline">
+            see it in the gallery, or write your own caption for it
           </Link>
         </div>
       </main>

@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { checkGuess, nextGuessRound } from "@/app/play/actions";
 import { Sparkles } from "@/app/components/Sparkles";
 import { Action, Ink, Quiet } from "@/app/components/ui";
+import { Tilt } from "@/app/components/Tilt";
+import { play } from "@/lib/sound";
 import type { GuessResult, GuessRound } from "@/lib/guess";
 
 // Human or AI? One caption from a finished battle. Two answers. The truth.
@@ -31,6 +33,7 @@ export function GuessPlay({ initialRound }: { initialRound: GuessRound | null })
   function guess(answer: "human" | "ai") {
     if (!round || guessed) return;
     setGuessed(answer);
+    play("vote");
     startTransition(async () => {
       const res = await checkGuess(round.captionId, answer);
       if (!res) {
@@ -38,6 +41,7 @@ export function GuessPlay({ initialRound }: { initialRound: GuessRound | null })
         return;
       }
       setResult(res);
+      play("reveal");
       setScore((s) => ({ right: s.right + (res.correct ? 1 : 0), total: s.total + 1 }));
     });
   }
@@ -58,60 +62,62 @@ export function GuessPlay({ initialRound }: { initialRound: GuessRound | null })
 
   return (
     <div key={round.captionId} className="screen-in flex w-full flex-col items-center gap-6 sm:gap-8">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={round.imageUrl}
-        alt="The photo this caption was written for"
-        className="max-h-[30svh] w-auto max-w-full rounded-[28px] object-contain shadow-[0_40px_80px_-40px_rgba(22,21,20,0.45)]"
-      />
-      <p className="max-w-2xl text-2xl leading-snug text-ink sm:text-3xl">“{round.text}”</p>
+      {/* The caption hangs on a floating sign; the photo glows behind it. */}
+      <div className="relative flex flex-col items-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={round.imageUrl}
+          alt="The photo this caption was written for"
+          className="frame glow-violet max-h-[24svh] w-auto max-w-[70vw] rounded-[18px] object-contain opacity-80"
+        />
+        <Tilt className="-mt-8 rounded-[24px]" max={8}>
+          <p className="panel lit glow-violet max-w-2xl rounded-[24px] px-6 py-5 text-xl leading-snug text-white sm:text-2xl">“{round.text}”</p>
+        </Tilt>
+      </div>
 
       {result ? (
         <div className="flex flex-col items-center gap-5" aria-live="polite">
-          <h1 className="word relative text-5xl sm:text-7xl">
+          <h1 className={`word ${result.correct ? "glow-green" : "glow-pink"} relative text-6xl sm:text-8xl`}>
             {result.correct && <Sparkles />}
             <Ink text={result.correct ? "Called it." : "Fooled you."} />
           </h1>
           <p className="text-lg text-ink-2">
             {result.authorType === "ai" ? "The AI wrote that." : `${result.authorName ?? "A classmate"} wrote that.`}
           </p>
-          <p className="text-sm tabular-nums text-ink-3">
+          <p key={score.total} className="tube glow-gold animate-pop text-sm tabular-nums">
             {score.right}/{score.total} right
           </p>
-          <Action onClick={again} disabled={pending}>
+          <Action onClick={again} disabled={pending} tone="green">
             Again?
           </Action>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-5">
-          <h1 className="word text-5xl sm:text-7xl">Human or AI?</h1>
-          <div className="grid w-full max-w-md grid-cols-2 gap-3">
+        <div className="flex w-full flex-col items-center gap-5">
+          <h1 className="word glow-violet text-6xl sm:text-8xl">Human or AI?</h1>
+          <div className="grid w-full max-w-lg grid-cols-2 gap-4">
             {(
               [
-                ["human", "Human"],
-                ["ai", "AI"],
+                ["human", "Human", "glow-green", "green"],
+                ["ai", "AI", "glow-violet", "violet"],
               ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => guess(value)}
-                disabled={guessed !== null}
-                aria-pressed={guessed === value}
-                className={`rounded-[24px] px-6 py-6 text-2xl font-medium transition duration-300 active:scale-[0.97] ${
-                  guessed === value
-                    ? "chosen bg-ink text-white"
-                    : guessed
-                      ? "bg-white/50 text-ink-3 opacity-40 ring-1 ring-line"
-                      : "bg-white text-ink ring-1 ring-line hover:-translate-y-0.5 hover:shadow-[0_24px_48px_-28px_rgba(22,21,20,0.35)]"
-                }`}
-              >
-                {label}
-              </button>
+            ).map(([value, label, glow, light]) => (
+              <Tilt key={value} className="rounded-[26px]" max={14} lift={30} light={light}>
+                <button
+                  type="button"
+                  onClick={() => guess(value)}
+                  disabled={guessed !== null}
+                  aria-pressed={guessed === value}
+                  className={`panel ${glow} tube w-full rounded-[26px] px-6 py-8 text-2xl transition duration-300 sm:text-3xl ${
+                    guessed === value ? "lit chosen" : guessed ? "scale-95 opacity-25" : "lit hover:brightness-125 active:translate-y-1"
+                  }`}
+                >
+                  {label}
+                </button>
+              </Tilt>
             ))}
           </div>
           {score.total > 0 && (
-            <p className="text-sm tabular-nums text-ink-3">
+            <p className="tube glow-gold text-sm tabular-nums">
               {score.right}/{score.total} right
             </p>
           )}

@@ -1,32 +1,62 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Menu } from "@/app/components/Menu";
-import { Ink } from "@/app/components/ui";
+import { LIGHT, setRoomLight, Tilt } from "@/app/components/Tilt";
+import { play } from "@/lib/sound";
 
-// Screen 1: "hey." Then a question, then one action.
-// Screen 2: two choices, Create or Play.
+type Stage = "door" | "entering" | "inside";
+
+// The club.
+// 1. The door: the screen starts dark; the sign flickers on; one action.
+// 2. ENTER: the doors swing open and the sign rushes past the camera.
+// 3. Inside: two lit entrances (the Studio and the Arena), and three small
+//    signs for the Gallery, the Awards and Backstage.
 export function Opening({ signedIn, skipIntro }: { signedIn: boolean; skipIntro: boolean }) {
-  const [stage, setStage] = useState<"hello" | "choose">(skipIntro ? "choose" : "hello");
+  const [stage, setStage] = useState<Stage>(skipIntro ? "inside" : "door");
 
-  if (stage === "hello") {
+  useEffect(() => {
+    if (stage !== "entering") return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = setTimeout(() => setStage("inside"), reduced ? 0 : 950);
+    return () => clearTimeout(t);
+  }, [stage]);
+
+  useEffect(() => () => setRoomLight(null), []);
+
+  if (stage !== "inside") {
     return (
-      <main className="flex min-h-[100svh] flex-col items-center justify-center px-6 text-center">
-        <h1 className="word rise text-[clamp(6rem,24vw,15rem)] text-ink">hey.</h1>
-        <p className="mt-6 text-xl text-ink-2 sm:text-2xl">
-          <Ink text="Ready to make something funny?" delay={700} />
-        </p>
-        <button
-          type="button"
-          onClick={() => setStage("choose")}
-          className="rise group mt-12 inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-lg font-medium text-white transition hover:scale-[1.03] active:scale-[0.97]"
-          style={{ animationDelay: "1300ms" }}
-        >
-          Let&apos;s go
-          <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-        </button>
+      <main className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden px-6 text-center">
+        {/* The door frame: a faint violet outline around the entrance. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[78svh] w-[min(88vw,560px)] -translate-x-1/2 -translate-y-1/2 rounded-t-[999px] border border-violet/25 shadow-[0_0_80px_-30px_#a46bff,inset_0_0_80px_-40px_#a46bff]"
+        />
+        <div className={`relative flex flex-col items-center ${stage === "entering" ? "walk-in" : ""}`}>
+          <h1 className="flex flex-col items-center">
+            <span className="neon glow-pink flicker-on text-[clamp(4.5rem,18vw,10rem)] [animation-delay:400ms]">morningside.</span>
+            <span className="neon glow-cyan flicker-on mt-1 text-[clamp(2.4rem,8vw,4.5rem)] [animation-delay:1500ms]">memes after dark.</span>
+          </h1>
+          <p className="tube glow-green flicker-on mt-8 text-sm sm:text-base [animation-delay:2500ms]">The club is open</p>
+          <button
+            type="button"
+            onClick={() => {
+              play("enter");
+              setStage("entering");
+            }}
+            disabled={stage === "entering"}
+            className="btn-neon btn-big glow-pink rise mt-12 [animation-delay:3000ms]"
+          >
+            Enter <span aria-hidden>→</span>
+          </button>
+        </div>
+        {stage === "entering" && (
+          <>
+            <span aria-hidden className="door door-left" />
+            <span aria-hidden className="door door-right" />
+          </>
+        )}
       </main>
     );
   }
@@ -38,38 +68,87 @@ export function Opening({ signedIn, skipIntro }: { signedIn: boolean; skipIntro:
       <Suspense fallback={null}>
         <Menu signedIn={signedIn} onOpening />
       </Suspense>
-      <main className="screen-in flex min-h-[100svh] flex-col items-center justify-center px-6">
-        <p className="mb-10 text-sm text-ink-3 sm:mb-14"><Ink text="What do you feel like?" /></p>
-        <div className="flex w-full max-w-4xl flex-col items-stretch gap-4 sm:flex-row sm:gap-6">
-          <Choice href={createHref} word="Create" hint="Make a meme. The AI writes the captions." delay={60} />
-          <Choice href="/play" word="Play" hint="Two captions. Pick the funnier one." delay={160} />
+      <main className="screen-in flex min-h-[100svh] flex-col items-center justify-center px-5 pb-12 pt-24 [perspective:1400px]">
+        <p className="tube glow-violet mb-8 text-xs sm:mb-12">Pick a door</p>
+        <div className="grid w-full max-w-5xl gap-5 sm:grid-cols-2 sm:gap-8">
+          <Entrance
+            href={createHref}
+            word="Create"
+            venue="The Studio"
+            hint="Show it a moment. The AI writes the captions."
+            glow="glow-pink"
+            accent="glow-violet"
+            light="pink"
+            delay={80}
+          />
+          <Entrance
+            href="/play"
+            word="Play"
+            venue="The Arena"
+            hint="Two captions. Pick the funnier one."
+            glow="glow-cyan"
+            accent="glow-green"
+            light="cyan"
+            delay={200}
+          />
         </div>
-        <nav aria-label="More" className="rise mt-12 flex items-center gap-3 text-[15px] text-ink-3" style={{ animationDelay: "320ms" }}>
-          <Link href="/explore" className="underline-offset-4 transition hover:text-ink hover:underline">explore</Link>
-          <span aria-hidden>·</span>
-          <Link href="/results" className="underline-offset-4 transition hover:text-ink hover:underline">results</Link>
-          <span aria-hidden>·</span>
-          <Link href={signedIn ? "/you" : "/login?next=/you"} className="underline-offset-4 transition hover:text-ink hover:underline">you</Link>
+        <nav aria-label="More" className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:mt-14">
+          <SmallSign href="/explore" label="explore" venue="the gallery" glow="glow-violet" light="violet" />
+          <SmallSign href="/results" label="results" venue="the awards" glow="glow-gold" light="gold" />
+          <SmallSign href={signedIn ? "/you" : "/login?next=/you"} label="you" venue="backstage" glow="glow-green" light="green" />
         </nav>
       </main>
     </>
   );
 }
 
-function Choice({ href, word, hint, delay }: { href: string; word: string; hint: string; delay: number }) {
+// A large lit entrance: tilts toward the pointer, tints the room, presses in.
+function Entrance({
+  href,
+  word,
+  venue,
+  hint,
+  glow,
+  accent,
+  light,
+  delay,
+}: {
+  href: string;
+  word: string;
+  venue: string;
+  hint: string;
+  glow: string;
+  accent: string;
+  light: keyof typeof LIGHT;
+  delay: number;
+}) {
   return (
-    <Link
-      href={href}
-      className="rise group relative flex flex-1 flex-col items-center justify-center gap-3 overflow-hidden rounded-[32px] px-6 py-12 text-center ring-1 ring-line transition duration-300 hover:bg-white hover:shadow-[0_30px_60px_-30px_rgba(22,21,20,0.25)] hover:ring-transparent active:scale-[0.98] sm:py-24"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <span className="word text-[clamp(4rem,14vw,8.5rem)] uppercase tracking-[-0.02em] text-ink transition duration-300 group-hover:text-punch">
-        {word}
-      </span>
-      <span className="max-w-[16rem] text-[15px] text-ink-2">{hint}</span>
-      <span aria-hidden className="text-xl text-ink-3 transition duration-300 group-hover:translate-x-1 group-hover:text-punch">
-        →
-      </span>
-    </Link>
+    <Tilt className="rise rounded-[36px]" light={light} max={9} lift={30} style={{ animationDelay: `${delay}ms` }}>
+      <Link
+        href={href}
+        onClick={() => play("select")}
+        className={`panel lit ${glow} group flex min-h-[15rem] flex-col items-center justify-center gap-3 rounded-[36px] px-6 py-10 text-center transition sm:min-h-[22rem]`}
+      >
+        <span className={`tube ${accent} text-xs`}>{venue}</span>
+        <span className={`word ${glow} text-[clamp(4.5rem,12vw,7.5rem)] transition-transform duration-300 [transform:translateZ(40px)] group-hover:scale-105`}>
+          {word}
+        </span>
+        <span className="max-w-[17rem] text-[15px] text-ink-2">{hint}</span>
+        <span aria-hidden className={`tube ${glow} mt-2 text-lg transition-transform group-hover:translate-x-1`}>
+          →
+        </span>
+      </Link>
+    </Tilt>
+  );
+}
+
+function SmallSign({ href, label, venue, glow, light }: { href: string; label: string; venue: string; glow: string; light: keyof typeof LIGHT }) {
+  return (
+    <Tilt className="rounded-full" light={light} max={14} lift={10}>
+      <Link href={href} aria-label={label} className={`chip-neon ${glow} px-5 py-2.5`}>
+        <span className={`tube ${glow} text-[11px]`}>{venue}</span>
+        <span className="text-ink-3">· {label}</span>
+      </Link>
+    </Tilt>
   );
 }

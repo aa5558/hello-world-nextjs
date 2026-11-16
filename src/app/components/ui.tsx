@@ -63,12 +63,16 @@ export function Word({
   return <Tag className={`word text-balance text-ink ${sizes[size]} ${className}`}>{children}</Tag>;
 }
 
-const ACTION =
-  "group inline-flex items-center justify-center gap-3 rounded-full px-8 py-4 text-lg font-medium transition hover:scale-[1.03] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40";
+// Buttons are neon tubes; the tone picks the tube colour.
 const TONES = {
-  ink: "bg-ink text-white",
-  punch: "bg-punch text-white shadow-[0_20px_40px_-20px_rgba(255,91,46,0.9)]",
-  light: "bg-white text-ink ring-1 ring-line hover:ring-ink/25",
+  ink: "glow-cyan",
+  punch: "glow-pink",
+  light: "glow-violet",
+  pink: "glow-pink",
+  cyan: "glow-cyan",
+  green: "glow-green",
+  violet: "glow-violet",
+  gold: "glow-gold",
 };
 
 // The one primary action on a screen.
@@ -101,7 +105,7 @@ export function Action({
       )}
     </>
   );
-  const cls = `${ACTION} ${TONES[tone]} ${className}`;
+  const cls = `btn-neon group ${TONES[tone]} ${className}`;
   if (href) {
     return (
       <Link href={href} className={cls}>
@@ -128,7 +132,7 @@ export function Quiet({
   children: ReactNode;
   className?: string;
 }) {
-  const cls = `text-sm text-ink-3 underline-offset-4 transition hover:text-ink hover:underline ${className}`;
+  const cls = `text-sm text-ink-3 underline-offset-4 transition hover:text-cyan hover:underline ${className}`;
   if (href) {
     return (
       <Link href={href} className={cls}>
@@ -150,7 +154,7 @@ export function Dots({ count, current, label }: { count: number; current: number
       {Array.from({ length: count }, (_, i) => (
         <li
           key={i}
-          className={`h-1.5 rounded-full transition-all duration-500 ${i === current ? "w-6 bg-ink" : i < current ? "w-1.5 bg-ink" : "w-1.5 bg-ice"}`}
+          className={`h-1.5 rounded-full transition-all duration-500 ${i === current ? "w-6 bg-pink shadow-[0_0_10px_#ff3cac]" : i < current ? "w-1.5 bg-pink/70" : "w-1.5 bg-ice"}`}
         />
       ))}
     </ol>
@@ -189,17 +193,17 @@ export function Sheet({
   // Rendered at the top of the page, so no animated parent can cover it.
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="presentation">
-      <button type="button" aria-label="Close" onClick={onClose} className="screen-in absolute inset-0 bg-ink/25 backdrop-blur-[2px]" />
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-[3px]" />
       <div
         ref={panel}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="sheet-in relative w-full max-w-md rounded-t-[32px] bg-background px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 text-left shadow-[0_-20px_60px_-20px_rgba(22,21,20,0.35)] outline-none sm:rounded-[32px] sm:pb-6"
+        className="sheet-in panel lit glow-violet relative w-full max-w-md rounded-t-[32px] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 text-left outline-none sm:rounded-[32px] sm:pb-6"
       >
         <span aria-hidden className="mx-auto mb-4 block h-1 w-10 rounded-full bg-ice sm:hidden" />
-        <p className="mb-4 text-sm text-ink-3">{title}</p>
+        <p className="tube glow-violet mb-4 text-xs">{title}</p>
         {children}
       </div>
     </div>,
@@ -219,7 +223,7 @@ export function SheetItem({
   children: ReactNode;
   danger?: boolean;
 }) {
-  const cls = `flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-lg transition hover:bg-white ${danger ? "text-down-ink" : "text-ink"}`;
+  const cls = `flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-lg transition hover:bg-panel-2 ${danger ? "text-down-ink" : "text-ink"}`;
   if (href) {
     return (
       <Link href={href} className={cls}>

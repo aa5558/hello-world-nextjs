@@ -35,7 +35,7 @@ async function studio(page: Page, opts: { file?: Buffer; vibe?: RegExp; context?
   await page.getByRole("radio", { name: opts.vibe ?? /Columbia core/ }).click();
   if (opts.context) await page.getByRole("textbox", { name: /context/i }).fill(opts.context);
   await page.getByRole("button", { name: /^(Next|Skip)/ }).click();
-  await page.getByRole("button", { name: /Generate & post/ }).click();
+  await page.getByRole("button", { name: /Make it funny/i }).click();
 }
 
 async function signIn(context: BrowserContext, user: { id: string; email: string }) {
@@ -43,23 +43,24 @@ async function signIn(context: BrowserContext, user: { id: string; email: string
 }
 
 test.describe("signed out", () => {
-  test("the opening: hey, one question, one action, then Create or Play", async ({ page }) => {
+  test("the entrance: the sign lights up, ENTER opens the doors, then the Studio or the Arena", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("hey.");
-    await expect(page.getByText("Ready to make something funny?")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("morningside.");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("memes after dark.");
+    await expect(page.getByText("The club is open")).toBeVisible();
     await expect(page.getByRole("button", { name: "Places" })).toHaveCount(0);
-    await page.getByRole("button", { name: /Let's go/ }).click();
-    await expect(page.getByRole("link", { name: /^Create/ })).toHaveAttribute("href", "/login?next=/create");
+    await page.getByRole("button", { name: /Enter/ }).click();
+    await expect(page.getByRole("link", { name: /The Studio/ })).toHaveAttribute("href", "/login?next=/create");
     const more = page.getByRole("navigation", { name: "More" });
     await expect(more.getByRole("link", { name: "explore" })).toHaveAttribute("href", "/explore");
     await expect(more.getByRole("link", { name: "results" })).toHaveAttribute("href", "/results");
     await expect(more.getByRole("link", { name: "you" })).toHaveAttribute("href", "/login?next=/you");
-    await page.getByRole("link", { name: /^Play/ }).click();
+    await page.getByRole("link", { name: /The Arena/ }).click();
     await expect(page).toHaveURL(/\/play/);
     await expect(page.getByRole("heading", { name: /Which one.s funnier/ })).toBeVisible();
-    // The wordmark always returns to the choice.
+    // The wordmark always returns to the two entrances.
     await page.getByRole("link", { name: "Morningside Memes, home" }).click();
-    await expect(page.getByRole("link", { name: /^Play/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /The Arena/ })).toBeVisible();
   });
 
   test("places: five words reach every part of the app", async ({ page }) => {
@@ -118,9 +119,9 @@ test.describe("signed out", () => {
     await expect(page.getByRole("button", { name: "AI", exact: true })).toBeVisible();
   });
 
-  test("Your turn (the random-battle Surprise) shows a posted photo and asks you to sign in to write", async ({ page }) => {
+  test("Open mic (the random-battle Surprise) shows a posted photo and asks you to sign in to write", async ({ page }) => {
     await page.goto("/play?mode=turn");
-    await expect(page.getByRole("heading", { name: "Your turn." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Open mic." })).toBeVisible();
     await expect(page.getByRole("link", { name: /Sign in/ }).last()).toHaveAttribute("href", /\/login\?next=/);
   });
 
@@ -369,9 +370,9 @@ test.describe("signed in", () => {
     await studio(page, { file: png, vibe: /Chronically online/, context: "an abstract gradient" });
     await expect(page.getByRole("status")).toContainText("Looking very closely");
     await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}\?new=1$/, { timeout: 70_000 });
-    await expect(page.getByRole("heading", { name: "Your meme is live." })).toBeVisible();
+    await expect(page.getByText("Your meme is live.")).toBeVisible();
     expect(await page.getByRole("list", { name: "Captions on your meme" }).getByRole("listitem").count()).toBeGreaterThan(0);
-    await expect(page.getByRole("link", { name: /Want to play/ })).toHaveAttribute("href", "/play");
+    await expect(page.getByRole("link", { name: /Take it to the arena/i })).toHaveAttribute("href", "/play");
     // The run was logged against a chain, with every model call, and linked
     // to the captions it wrote.
     const id = page.url().match(/g\/([0-9a-f-]{36})/)![1];
@@ -531,7 +532,7 @@ test.describe("signed in", () => {
     await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
     await page.getByRole("radio", { name: /Columbia core/ }).click();
     await page.getByRole("button", { name: /^(Next|Skip)/ }).click();
-    await expect(page.getByRole("button", { name: /Generate & post/ })).toBeEnabled();
+    await expect(page.getByRole("button", { name: /Make it funny/i })).toBeEnabled();
     // Replay the id of a submission that already produced a post, right
     // before submitting (React re-renders reset the hidden field earlier).
     await page.locator("form").evaluate((form, id) => {
@@ -602,7 +603,7 @@ test.describe("play", () => {
   test("signed out: one photo, two blind captions, tapping asks you to sign in", async ({ page }) => {
     await page.goto("/play");
     await expect(page.getByRole("heading", { name: /Which one.s funnier/ })).toBeVisible();
-    const picks = page.locator("button[aria-pressed]");
+    const picks = page.locator("main button[aria-pressed]");
     await expect(picks).toHaveCount(2);
     await expect(page.getByText(/Written by/)).toHaveCount(0);
     await picks.first().click();
@@ -612,7 +613,7 @@ test.describe("play", () => {
   test("signed in: picking upvotes it, reveals only that author, then Again?", async ({ page, context }) => {
     await signIn(context, USERS.find((u: { id: string }) => u.id === REGULAR_ID));
     await page.goto("/play");
-    const picks = page.locator("button[aria-pressed]");
+    const picks = page.locator("main button[aria-pressed]");
     await expect(picks).toHaveCount(2);
     const captionId = await picks.first().getAttribute("data-caption-id");
     await picks.first().click();
@@ -622,17 +623,17 @@ test.describe("play", () => {
     expect(votes.map((v) => v.vote)).toEqual([1]);
     await page.getByRole("link", { name: /Again/ }).click();
     await expect(page).toHaveURL(/\/play\?seen=/);
-    await expect(page.locator("button[aria-pressed]").first()).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator("main button[aria-pressed]").first()).toHaveAttribute("aria-pressed", "false");
   });
 });
 
 test.describe("accessibility basics", () => {
   test("the opening works with the keyboard alone", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /Let's go/ }).focus();
+    await page.getByRole("button", { name: /Enter/ }).focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("link", { name: /^Play/ })).toBeVisible();
-    await page.getByRole("link", { name: /^Play/ }).focus();
+    await expect(page.getByRole("link", { name: /The Arena/ })).toBeVisible();
+    await page.getByRole("link", { name: /The Arena/ }).focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/play/);
   });
@@ -647,6 +648,7 @@ test.describe("accessibility basics", () => {
         const h1s = [...document.querySelectorAll("h1")].filter(visible).length;
         const unlabeled = [...document.querySelectorAll("button, a[href]")]
           .filter(visible)
+          .filter((el) => !el.closest("[aria-hidden='true']"))
           .filter((el) => !(el.getAttribute("aria-label") || (el.textContent ?? "").trim() || el.querySelector("img[alt]:not([alt=''])")))
           .map((el) => el.outerHTML.slice(0, 80));
         return { h1s, unlabeled };
@@ -654,5 +656,48 @@ test.describe("accessibility basics", () => {
       expect(report.unlabeled, path).toEqual([]);
       expect(report.h1s, path).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+test.describe("the world reacts", () => {
+  test("sound is off by default, the switch works, and it is remembered", async ({ page }) => {
+    await page.goto("/play");
+    const toggle = page.getByRole("button", { name: "Sound off" });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await toggle.click();
+    await expect(page.getByRole("button", { name: "Sound on" })).toHaveAttribute("aria-pressed", "true");
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Sound on" })).toBeVisible();
+    await page.getByRole("button", { name: "Sound on" }).click();
+    await expect(page.getByRole("button", { name: "Sound off" })).toBeVisible();
+  });
+
+  test("the entrances tilt toward the pointer and settle back", async ({ page }) => {
+    await page.goto("/?start=choose");
+    const studio = page.getByRole("link", { name: /The Studio/ });
+    const tilt = studio.locator("xpath=..");
+    const box = (await studio.boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.9, box.y + box.height * 0.1);
+    await page.mouse.move(box.x + box.width * 0.85, box.y + box.height * 0.15);
+    await expect.poll(async () => tilt.evaluate((el) => (el as HTMLElement).style.getPropertyValue("--ry"))).not.toBe("0deg");
+    expect(await tilt.getAttribute("data-active")).toBe("true");
+    await page.mouse.move(5, 5);
+    await expect.poll(async () => tilt.evaluate((el) => (el as HTMLElement).style.getPropertyValue("--ry"))).toBe("0deg");
+  });
+
+  test("with reduced motion: no door animation, no tilt, everything still works", async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.getByRole("button", { name: /Enter/ }).click();
+    await expect(page.getByRole("link", { name: /The Arena/ })).toBeVisible({ timeout: 1500 });
+    const studio = page.getByRole("link", { name: /The Studio/ });
+    const box = (await studio.boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.9, box.y + 10);
+    await page.mouse.move(box.x + box.width * 0.8, box.y + 20);
+    expect(await studio.locator("xpath=..").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--ry"))).toBe("");
+    await page.getByRole("link", { name: /The Arena/ }).click();
+    await expect(page.getByRole("heading", { name: /Which one.s funnier/ })).toBeVisible();
+    await context.close();
   });
 });

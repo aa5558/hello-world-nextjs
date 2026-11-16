@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Countdown } from "@/app/components/Countdown";
 import { Sparkles } from "@/app/components/Sparkles";
 import { Action, Dots, Ink, Quiet } from "@/app/components/ui";
+import { CueOnMount } from "@/app/components/CueOnMount";
 import type { DailyWinner, LeaderboardEntry, Scoreboard } from "@/lib/battles";
 
 const STAGES = ["intro", "today", "top", "champ", "score"] as const;
@@ -76,22 +77,22 @@ export function ResultsReveal({
 
       <section key={stage} aria-live="polite" className="screen-in flex w-full flex-1 flex-col items-center justify-center gap-6 py-8 sm:gap-8">
         {stage === "intro" && (
-          <h1 className="word text-6xl sm:text-8xl">
+          <h1 className="word glow-gold text-6xl sm:text-8xl">
             <Ink text="Want to know who's winning?" />
           </h1>
         )}
 
         {stage === "today" && (
           <>
-            <p className="text-sm text-ink-3">
-              Today&apos;s prompt · <Countdown initialMs={msLeft} /> left
+            <p className="tube glow-cyan text-xs">
+              Tonight&apos;s prompt · <Countdown initialMs={msLeft} /> left
             </p>
-            <h1 className="word text-6xl sm:text-8xl">
+            <h1 className="word glow-cyan text-6xl sm:text-8xl">
               <Ink text={prompt} />
             </h1>
             {drop && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={drop.url} alt={drop.alt} className="rise max-h-[24svh] rounded-[24px] object-cover [animation-delay:300ms]" />
+              <img src={drop.url} alt={drop.alt} className="frame glow-gold rise max-h-[24svh] object-cover [animation-delay:300ms]" />
             )}
             <p className="rise text-lg text-ink-2 [animation-delay:400ms]">
               {photosToday} {photosToday === 1 ? "photo" : "photos"} · {entries.length} {entries.length === 1 ? "caption" : "captions"} so far. The top
@@ -106,53 +107,72 @@ export function ResultsReveal({
 
         {stage === "top" &&
           (loadError ? (
-            <p className="text-lg text-ink-2">We couldn&apos;t load today&apos;s captions just now.</p>
+            <p className="text-lg text-ink-2">We couldn&apos;t load tonight&apos;s captions just now.</p>
           ) : top.length === 0 ? (
             <>
-              <h1 className="word text-6xl sm:text-8xl">
+              {/* An empty, dark stage: the podiums wait unlit. */}
+              <div aria-hidden className="flex items-end gap-3 opacity-40">
+                {[96, 140, 72].map((h, n) => (
+                  <span key={n} className="panel w-20 rounded-t-2xl sm:w-28" style={{ height: h }} />
+                ))}
+              </div>
+              <h1 className="word glow-violet text-6xl sm:text-8xl">
                 <Ink text="Nobody's voted yet." />
               </h1>
               <p className="max-w-md text-lg text-ink-2">
                 {entries.length > 0
-                  ? `${entries.length} ${entries.length === 1 ? "caption is" : "captions are"} in the ring today, all tied at zero. One vote changes that.`
-                  : "No captions today yet. The first meme gets everyone's attention."}
+                  ? `${entries.length} ${entries.length === 1 ? "caption is" : "captions are"} on stage tonight, all tied at zero. One vote changes that.`
+                  : "No captions tonight yet. The first meme gets the whole room's attention."}
               </p>
-              <Action href={entries.length > 0 ? "/play" : createHref}>{entries.length > 0 ? "Go vote" : "Make the first one"}</Action>
+              <Action href={entries.length > 0 ? "/play" : createHref} tone="cyan">
+                {entries.length > 0 ? "Go vote" : "Make the first one"}
+              </Action>
             </>
           ) : (
             <>
-              <h1 className="word text-5xl sm:text-7xl">Today&apos;s top captions</h1>
-              <ol aria-label="Today's top captions" className="flex w-full max-w-xl flex-col gap-3 text-left">
-                {top.map((entry, rank) => (
-                  <li
-                    key={entry.id}
-                    className="rise relative flex items-center gap-4 rounded-[22px] bg-white p-3 pr-5 ring-1 ring-line"
-                    // Third place appears first, then second, then the winner.
-                    style={{ animationDelay: `${(top.length - 1 - rank) * 650 + 200}ms` }}
-                  >
-                    {rank === 0 && <Sparkles />}
-                    <span aria-label={`Rank ${rank + 1}`} className={`medal-${rank + 1} h-4 w-4 shrink-0 rounded-full shadow-sm`} />
-                    <Link href={`/g/${entry.generationId}`} className="shrink-0" aria-label="Open this meme">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={entry.imageUrl} alt="" className="h-14 w-14 rounded-2xl object-cover" />
-                    </Link>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[17px] leading-snug text-ink">“{entry.text}”</span>
-                      <span className="mt-1 block text-xs">
-                        <Author entry={entry} />
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-lg font-medium tabular-nums text-ink">{entry.score > 0 ? `+${entry.score}` : entry.score}</span>
-                  </li>
-                ))}
+              <CueOnMount cue="reveal" delay={1500} />
+              <div aria-hidden className="stage-dim pointer-events-none fixed inset-0 z-0 [animation-delay:1100ms]" />
+              <h1 className="word glow-gold relative z-10 text-5xl sm:text-7xl">Tonight&apos;s top captions</h1>
+              {/* Podiums: silver left, gold centre (tallest), bronze right.
+                  Revealed 3rd, then 2nd, then (after the lights dim) 1st. */}
+              <ol aria-label="Today's top captions" className="relative z-10 grid w-full max-w-4xl grid-cols-1 items-end gap-4 sm:grid-cols-3">
+                {top.map((entry, rank) => {
+                  const order = ["sm:order-2", "sm:order-1", "sm:order-3"][rank];
+                  const height = ["sm:min-h-[19rem]", "sm:min-h-[15rem]", "sm:min-h-[12rem]"][rank];
+                  const glow = ["glow-gold", "glow-cyan", "glow-pink"][rank];
+                  const medal = ["gold", "silver", "bronze"][rank];
+                  const delay = [1600, 650, 0][rank] + 200;
+                  return (
+                    <li key={entry.id} className={`podium-up relative ${order}`} style={{ animationDelay: `${delay}ms` }}>
+                      {rank === 0 && <span aria-hidden className="spotlight" />}
+                      {rank === 0 && <Sparkles />}
+                      <div className={`panel ${rank === 0 ? "lit" : ""} ${glow} relative flex flex-col items-center gap-3 rounded-t-[26px] rounded-b-lg px-4 pb-5 pt-5 text-center ${height}`}>
+                        <span aria-label={`Rank ${rank + 1}`} className={`medal-${rank + 1} h-7 w-7 rounded-full shadow-[0_0_18px_rgba(255,255,255,0.35)]`} />
+                        <span className={`tube ${glow} text-[10px]`}>{medal}</span>
+                        <Link href={`/g/${entry.generationId}`} aria-label="Open this meme" className="shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={entry.imageUrl} alt="" className="h-16 w-16 rounded-2xl object-cover" />
+                        </Link>
+                        <span className="text-[16px] leading-snug text-white">“{entry.text}”</span>
+                        <span className="text-xs">
+                          <Author entry={entry} />
+                        </span>
+                        <span className={`tube ${glow} mt-auto text-xl tabular-nums`}>{entry.score > 0 ? `+${entry.score}` : entry.score}</span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ol>
+              <p className="tube glow-gold rise relative z-10 text-lg sm:text-2xl" style={{ animationDelay: "2500ms" }}>
+                The people have spoken.
+              </p>
               {entries.length > top.length &&
                 (showAll ? (
-                  <ol aria-label="Every caption today" start={top.length + 1} className="flex w-full max-w-xl flex-col gap-1 text-left">
+                  <ol aria-label="Every caption today" start={top.length + 1} className="relative z-10 flex w-full max-w-xl flex-col gap-1 text-left">
                     {entries.slice(top.length).map((entry, n) => (
                       <li key={entry.id} className="rise flex items-baseline gap-3 border-b border-line px-2 py-3" style={{ animationDelay: `${n * 30}ms` }}>
-                        <span className="w-6 shrink-0 text-sm tabular-nums text-ink-3">{top.length + n + 1}</span>
-                        <Link href={`/g/${entry.generationId}`} className="min-w-0 flex-1 text-[15px] text-ink hover:underline">
+                        <span className="tube glow-violet w-6 shrink-0 text-xs tabular-nums">{top.length + n + 1}</span>
+                        <Link href={`/g/${entry.generationId}`} className="min-w-0 flex-1 text-[15px] text-white hover:text-cyan">
                           “{entry.text}”
                         </Link>
                         <span className="shrink-0 text-sm tabular-nums text-ink-2">{entry.score}</span>
@@ -160,7 +180,9 @@ export function ResultsReveal({
                     ))}
                   </ol>
                 ) : (
-                  <Quiet onClick={() => setShowAll(true)}>see all {entries.length} captions today</Quiet>
+                  <Quiet onClick={() => setShowAll(true)} className="relative z-10">
+                    see all {entries.length} captions tonight
+                  </Quiet>
                 ))}
             </>
           ))}
@@ -168,13 +190,13 @@ export function ResultsReveal({
         {stage === "champ" &&
           (winner ? (
             <>
-              <p className="text-sm text-ink-3">Yesterday&apos;s winner{winner.dailyPrompt ? ` · “${winner.dailyPrompt}”` : ""}</p>
+              <p className="tube glow-gold text-xs">Yesterday&apos;s winner{winner.dailyPrompt ? ` · “${winner.dailyPrompt}”` : ""}</p>
               <Link href={`/g/${winner.generationId}`} className="rise relative">
                 <Sparkles />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={winner.imageUrl} alt="" className="max-h-[30svh] rounded-[28px] object-contain shadow-[0_40px_80px_-40px_rgba(22,21,20,0.45)]" />
+                <img src={winner.imageUrl} alt="" className="frame glow-gold max-h-[30svh] object-contain" />
               </Link>
-              <p className="word text-4xl sm:text-6xl">
+              <p className="word glow-gold text-4xl sm:text-6xl">
                 <Ink text={`“${winner.text}”`} delay={300} step={50} />
               </p>
               <p className="rise text-lg text-ink-2 [animation-delay:900ms]">
@@ -183,7 +205,7 @@ export function ResultsReveal({
             </>
           ) : (
             <>
-              <h1 className="word text-6xl sm:text-8xl">
+              <h1 className="word glow-violet text-6xl sm:text-8xl">
                 <Ink text="No winner yesterday." />
               </h1>
               <p className="max-w-sm text-lg text-ink-2">Nobody upvoted a caption in time. Don&apos;t let that happen today.</p>
@@ -192,10 +214,10 @@ export function ResultsReveal({
 
         {stage === "score" && (
           <>
-            <p className="text-sm text-ink-3">Humans vs AI · all time</p>
+            <p className="tube glow-violet text-xs">Humans vs AI · all time</p>
             {scoreboard.battles === 0 && scoreboard.humanWins + scoreboard.aiWins === 0 ? (
               <>
-                <h1 className="word text-6xl sm:text-8xl">
+                <h1 className="word glow-violet text-6xl sm:text-8xl">
                   <Ink text="Still 0 to 0." />
                 </h1>
                 <p className="max-w-md text-lg text-ink-2">
@@ -206,12 +228,12 @@ export function ResultsReveal({
               <>
                 <div className="flex items-end justify-center gap-6 sm:gap-12" aria-label={`Humans ${scoreboard.humanWins}, AI ${scoreboard.aiWins}`}>
                   <div className="rise flex flex-col items-center">
-                    <span className="word text-[clamp(5rem,18vw,10rem)] tabular-nums text-human">{scoreboard.humanWins}</span>
+                    <span className="tube glow-green text-[clamp(5rem,18vw,10rem)] tabular-nums">{scoreboard.humanWins}</span>
                     <span className="text-sm text-ink-2">humans</span>
                   </div>
-                  <span className="word pb-10 text-3xl text-ink-3">vs</span>
+                  <span className="neon glow-pink pb-10 text-5xl">vs</span>
                   <div className="rise flex flex-col items-center [animation-delay:250ms]">
-                    <span className="word text-[clamp(5rem,18vw,10rem)] tabular-nums text-ai">{scoreboard.aiWins}</span>
+                    <span className="tube glow-violet text-[clamp(5rem,18vw,10rem)] tabular-nums">{scoreboard.aiWins}</span>
                     <span className="text-sm text-ink-2">AI</span>
                   </div>
                 </div>
@@ -225,13 +247,17 @@ export function ResultsReveal({
                 </p>
               </>
             )}
-            <Action href="/play">Play</Action>
+            <Action href="/play" tone="cyan">To the arena</Action>
             <Quiet href="/?start=choose">home</Quiet>
           </>
         )}
       </section>
 
-      {stage !== "score" && <Action onClick={next}>{nextLabel[stage]}</Action>}
+      {stage !== "score" && (
+        <Action onClick={next} tone="gold" className="relative z-10">
+          {nextLabel[stage]}
+        </Action>
+      )}
     </main>
   );
 }

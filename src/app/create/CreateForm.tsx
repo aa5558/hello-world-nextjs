@@ -5,6 +5,8 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { IMAGE_PROMPT_IDEAS, IMAGE_PROMPT_MAX, VIBES, type Vibe } from "@/lib/captions";
 import type { LibraryImage } from "@/lib/library";
 import { Ink } from "@/app/components/ui";
+import { LIGHT, setRoomLight, Tilt } from "@/app/components/Tilt";
+import { play } from "@/lib/sound";
 import { createGeneration, type CreateFormState } from "./actions";
 
 const initialState: CreateFormState = {};
@@ -27,6 +29,14 @@ const COOKING = [
   "Cutting the ones that didn't land…",
   "Plating four captions…",
 ];
+
+
+const VIBE_GLOW: Record<Vibe, string> = {
+  midwest: "glow-gold",
+  online: "glow-green",
+  columbia: "glow-cyan",
+  newyorker: "glow-pink",
+};
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -75,6 +85,8 @@ export function CreateForm({
   const [context, setContext] = useState("");
   const [imagePrompt, setImagePrompt] = useState("");
   const [stage, setStage] = useState(0);
+  const [settling, setSettling] = useState(false);
+  const [picking, setPicking] = useState<Vibe | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const contextInput = useRef<HTMLInputElement>(null);
 
@@ -113,8 +125,28 @@ export function CreateForm({
     }
     setPreview(URL.createObjectURL(file));
     setSource("upload");
-    setStep(1);
+    setSettling(true);
+    play("select");
   }
+
+  // After a photo lands, let it settle into the frame under the spotlight
+  // for a moment, then move on by itself.
+  useEffect(() => {
+    if (!settling) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = setTimeout(() => {
+      setSettling(false);
+      setStep((s) => (s === 0 ? 1 : s));
+    }, reduced ? 0 : 1100);
+    return () => clearTimeout(t);
+  }, [settling]);
+
+  // The room takes on each step's colour; it darkens while the AI works.
+  useEffect(() => {
+    const colours = [LIGHT.pink, LIGHT.violet, LIGHT.cyan, LIGHT.pink];
+    setRoomLight(pending ? "40, 20, 60" : colours[step]);
+  }, [step, pending]);
+  useEffect(() => () => setRoomLight(null), []);
 
   const chosenLibrary = libraryChoices.find((image) => image.id === libraryId) ?? null;
   const previewUrl = source === "upload" ? preview : source === "library" ? chosenLibrary?.url ?? null : null;
@@ -124,16 +156,19 @@ export function CreateForm({
   const go = (to: number) => setStep(Math.max(0, Math.min(to, STEPS.length - 1)));
 
   return (
-    <form action={formAction} className="mx-auto flex min-h-[100svh] w-full max-w-3xl flex-col px-5 pb-10 pt-20 sm:px-8 sm:pt-24">
+    <form action={formAction} className="relative mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col px-5 pb-10 pt-20 sm:px-8 sm:pt-24">
       <input type="hidden" name="source" value={source} />
       {source === "library" && libraryId && <input type="hidden" name="library_image" value={libraryId} />}
       <input type="hidden" name="vibe" value={vibe} />
       <input type="hidden" name="submission_id" value={submissionId} />
 
+      {/* While the AI works, the room goes dark around the photo. */}
+      {pending && <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-black/55 transition-opacity duration-700" />}
+
       {/* Progress + back */}
-      <div className="flex h-10 items-center justify-between">
+      <div className="relative z-10 flex h-10 items-center justify-between">
         {step > 0 && !pending ? (
-          <button type="button" onClick={() => go(step - 1)} className="text-sm text-ink-3 transition hover:text-ink">
+          <button type="button" onClick={() => go(step - 1)} className="tube glow-violet text-[11px] text-ink-2 transition hover:text-white">
             ← back
           </button>
         ) : (
@@ -143,64 +178,70 @@ export function CreateForm({
           {STEPS.map((name, i) => (
             <li
               key={name}
-              className={`h-1.5 rounded-full transition-all duration-500 ${i === step ? "w-6 bg-ink" : i < step ? "w-1.5 bg-ink" : "w-1.5 bg-ice"}`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${i === step ? "w-6 bg-pink shadow-[0_0_10px_#ff3cac]" : i < step ? "w-1.5 bg-pink/70" : "w-1.5 bg-ice"}`}
             />
           ))}
         </ol>
       </div>
 
       {/* 1. The moment */}
-      <section hidden={step !== 0} className="screen-in flex flex-1 flex-col justify-center gap-8 py-8">
-        <div className="flex flex-col items-center gap-3">
-          <h1 className="word text-center text-6xl sm:text-8xl">
+      <section hidden={step !== 0} className="screen-in relative z-10 flex flex-1 flex-col items-center justify-center gap-8 py-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <h1 className="word glow-pink text-6xl sm:text-8xl">
             <Ink text={surprised && source === "library" ? "Surprise." : "Show me the moment."} />
           </h1>
-          <p className="rise text-sm text-ink-3 [animation-delay:400ms]">today&apos;s prompt · “{dailyPrompt}”</p>
+          <p className="rise text-sm text-ink-3 [animation-delay:500ms]">tonight&apos;s prompt · “{dailyPrompt}”</p>
         </div>
 
-        <label
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragging(false);
-            const file = e.dataTransfer.files?.[0];
-            if (file && fileInput.current) {
-              const transfer = new DataTransfer();
-              transfer.items.add(file);
-              fileInput.current.files = transfer.files;
-              acceptFile(file);
-            }
-          }}
-          className={`rise group relative mx-auto flex aspect-[4/3] w-full max-w-md cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-[32px] border-[1.5px] border-dashed text-center transition duration-300 [animation-delay:150ms] ${
-            dragging ? "scale-[1.02] border-punch bg-white" : "border-ink/15 bg-white/60 hover:border-ink/40 hover:bg-white"
-          } ${source === "upload" ? "" : "hidden"}`}
-        >
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview} alt="Your selected photo" className="absolute inset-0 h-full w-full object-cover" />
-          ) : (
-            <>
-              <span aria-hidden className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-2xl text-white transition duration-300 group-hover:scale-110">
-                +
-              </span>
-              <span className="text-lg font-medium text-ink">Add a photo</span>
-              <span className="text-sm text-ink-3">tap, or drop it here · up to 4MB</span>
-            </>
-          )}
-          <input
-            ref={fileInput}
-            name="image"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            required={source === "upload"}
-            onChange={(e) => acceptFile(e.target.files?.[0])}
-            className="sr-only"
-          />
-        </label>
+        {/* The floating picture frame. Click it, or drop a photo on it. */}
+        <div className={`relative ${source === "upload" ? "" : "hidden"}`}>
+          {preview && <span aria-hidden className="spotlight" />}
+          <Tilt className="rounded-[22px]" max={8} lift={20} light="pink">
+            <label
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file && fileInput.current) {
+                  const transfer = new DataTransfer();
+                  transfer.items.add(file);
+                  fileInput.current.files = transfer.files;
+                  acceptFile(file);
+                }
+              }}
+              className={`frame glow-pink group flex aspect-[4/3] w-[min(82vw,420px)] cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden text-center transition duration-500 ${
+                dragging ? "scale-[1.04] [--glow:45,226,255]" : ""
+              } ${preview ? "[transform:rotateY(-4deg)_rotateX(2deg)]" : ""}`}
+            >
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt="Your selected photo" className="rise h-full w-full rounded-[12px] object-cover" />
+              ) : (
+                <>
+                  <span aria-hidden className={`tube glow-pink text-5xl transition duration-300 group-hover:scale-110 ${dragging ? "glow-cyan" : ""}`}>
+                    +
+                  </span>
+                  <span className="tube glow-pink text-sm">{dragging ? "drop it" : "add a photo"}</span>
+                  <span className="text-xs text-ink-3">tap the frame, or drop a photo on it · up to 4MB</span>
+                </>
+              )}
+              <input
+                ref={fileInput}
+                name="image"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                required={source === "upload"}
+                onChange={(e) => acceptFile(e.target.files?.[0])}
+                className="sr-only"
+              />
+            </label>
+          </Tilt>
+        </div>
         {fileError && source === "upload" && (
           <p role="alert" className="text-center text-sm text-down-ink">
             {fileError}
@@ -208,10 +249,15 @@ export function CreateForm({
         )}
 
         {source === "library" && !browsing && chosenLibrary && (
-          <figure className="rise mx-auto flex flex-col items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={chosenLibrary.url} alt={chosenLibrary.altText} className="max-h-[38svh] w-auto max-w-full rounded-[28px] object-contain shadow-[0_40px_80px_-40px_rgba(22,21,20,0.45)]" />
-            <figcaption className="text-sm text-ink-3">
+          <figure className="relative flex flex-col items-center gap-3">
+            <span aria-hidden className="spotlight" />
+            <Tilt className="rounded-[22px]" max={8} light="gold">
+              <div className="frame glow-gold [transform:rotateY(-4deg)_rotateX(2deg)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={chosenLibrary.url} alt={chosenLibrary.altText} className="rise max-h-[36svh] w-auto max-w-[78vw] rounded-[12px] object-contain" />
+              </div>
+            </Tilt>
+            <figcaption className="tube glow-gold text-[11px]">
               {chosenLibrary.title}
               {chosenLibrary.id === dailyDrop?.id ? " · today's photo" : ""}
             </figcaption>
@@ -219,7 +265,7 @@ export function CreateForm({
         )}
 
         {source === "library" && browsing && (
-          <div role="radiogroup" aria-label="Library photo" className="rise mx-auto grid w-full max-w-lg grid-cols-3 gap-2 sm:grid-cols-4">
+          <div role="radiogroup" aria-label="Library photo" className="rise grid w-full max-w-lg grid-cols-3 gap-3 sm:grid-cols-4">
             {libraryChoices.map((image) => {
               const isDrop = image.id === dailyDrop?.id;
               return (
@@ -232,14 +278,13 @@ export function CreateForm({
                   onClick={() => {
                     setLibraryId(image.id);
                     setBrowsing(false);
+                    play("select");
                   }}
-                  className={`relative aspect-square overflow-hidden rounded-[18px] transition ${
-                    libraryId === image.id ? "ring-[3px] ring-ink ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
-                  }`}
+                  className={`frame relative aspect-square overflow-hidden !p-1.5 transition hover:scale-105 ${libraryId === image.id ? "glow-cyan" : "glow-violet opacity-80 hover:opacity-100"}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={image.url} alt="" className="h-full w-full object-cover" />
-                  {isDrop && <span className="absolute left-1.5 top-1.5 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-medium">today</span>}
+                  <img src={image.url} alt="" className="h-full w-full rounded-[10px] object-cover" />
+                  {isDrop && <span className="tube glow-gold absolute left-2 top-2 text-[9px]">today</span>}
                 </button>
               );
             })}
@@ -247,7 +292,7 @@ export function CreateForm({
         )}
 
         {source === "ai" && (
-          <div className="rise mx-auto flex w-full max-w-md flex-col gap-2">
+          <div className="rise flex w-full max-w-md flex-col gap-2">
             <label htmlFor="image_prompt" className="text-sm text-ink-2">
               Describe the photo you want
             </label>
@@ -264,7 +309,7 @@ export function CreateForm({
             />
             <div className="flex flex-wrap gap-1.5">
               {IMAGE_PROMPT_IDEAS.map((idea) => (
-                <button key={idea} type="button" onClick={() => setImagePrompt(idea)} className="chip bg-powder text-ink">
+                <button key={idea} type="button" onClick={() => setImagePrompt(idea)} className="chip-neon glow-violet text-xs">
                   {idea}
                 </button>
               ))}
@@ -272,13 +317,16 @@ export function CreateForm({
           </div>
         )}
 
-        <div className="flex flex-col items-center gap-3">
-          {ready && (
-            <NextButton onClick={() => go(1)} />
+        <div className="flex flex-col items-center gap-4">
+          {ready && !settling && (
+            <button type="button" onClick={() => go(1)} className="btn-neon glow-pink rise">
+              Next <span aria-hidden>→</span>
+            </button>
           )}
-          <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-ink-3">
+          {/* Small lit objects for the other ways to get a photo. */}
+          <div className="flex flex-wrap justify-center gap-2">
             {source !== "upload" && (
-              <button type="button" onClick={() => setSource("upload")} className="underline-offset-4 hover:text-ink hover:underline">
+              <button type="button" onClick={() => setSource("upload")} className="chip-neon glow-pink">
                 upload my own
               </button>
             )}
@@ -289,14 +337,15 @@ export function CreateForm({
                   setSource("library");
                   setLibraryId(dailyDrop.id);
                   setBrowsing(false);
+                  play("select");
                 }}
-                className="underline-offset-4 hover:text-ink hover:underline"
+                className="chip-neon glow-gold"
               >
                 use today&apos;s photo
               </button>
             )}
             {libraryChoices.length > 0 && (
-              <Link href={surpriseHref} className="underline-offset-4 hover:text-ink hover:underline">
+              <Link href={surpriseHref} className="chip-neon glow-green">
                 {surprised && source === "library" ? "try another" : "surprise me"}
               </Link>
             )}
@@ -307,54 +356,67 @@ export function CreateForm({
                   setSource("library");
                   setBrowsing(true);
                 }}
-                className="underline-offset-4 hover:text-ink hover:underline"
+                className="chip-neon glow-violet"
               >
                 browse our photos
               </button>
             )}
             {source !== "ai" && aiPhotosEnabled && (
-              <button type="button" onClick={() => setSource("ai")} className="underline-offset-4 hover:text-ink hover:underline">
+              <button type="button" onClick={() => setSource("ai")} className="chip-neon glow-cyan">
                 or describe one
               </button>
             )}
-          </p>
+          </div>
         </div>
       </section>
 
-      {/* 2. The vibe */}
-      <section hidden={step !== 1} className="flex flex-1 flex-col justify-center gap-8 py-8">
-        {step === 1 && <h2 className="word rise text-center text-6xl sm:text-8xl">What&apos;s the vibe?</h2>}
-        <div role="radiogroup" aria-label="Caption style" className="mx-auto grid w-full max-w-xl gap-2.5">
-          {(Object.keys(VIBES) as Vibe[]).map((key, i) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={vibe === key}
-              onClick={() => {
-                setVibe(key);
-                go(2);
-              }}
-              className={`rise group flex items-center justify-between gap-4 rounded-[22px] px-6 py-5 text-left transition duration-300 ${
-                vibe === key ? "bg-ink text-white" : "bg-white text-ink ring-1 ring-line hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-26px_rgba(22,21,20,0.4)]"
-              }`}
-              style={{ animationDelay: `${80 + i * 60}ms` }}
-            >
-              <span>
-                <span className="block text-xl font-medium tracking-tight">{VIBES[key].label}</span>
-                <span className={`block text-sm ${vibe === key ? "text-white/60" : "text-ink-3"}`}>{VIBE_TAGLINES[key]}</span>
-              </span>
-              <span aria-hidden className="text-lg opacity-40 transition group-hover:translate-x-1 group-hover:opacity-100">
-                →
-              </span>
-            </button>
-          ))}
+      {/* 2. The vibe: floating neon signs. The chosen one comes forward. */}
+      <section hidden={step !== 1} className="relative z-10 flex flex-1 flex-col items-center justify-center gap-8 py-6">
+        {step === 1 && (
+          <h2 className="word glow-violet text-center text-6xl sm:text-8xl">
+            <Ink text="What's the vibe?" />
+          </h2>
+        )}
+        <div role="radiogroup" aria-label="Caption style" className="grid w-full max-w-2xl gap-3 sm:grid-cols-2">
+          {(Object.keys(VIBES) as Vibe[]).map((key, i) => {
+            const isPick = picking === key;
+            const faded = picking !== null && !isPick;
+            return (
+              <Tilt key={key} className="rise rounded-[24px]" max={10} style={{ animationDelay: `${120 + i * 80}ms` }}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={vibe === key}
+                  onClick={() => {
+                    if (picking) return;
+                    setVibe(key);
+                    setPicking(key);
+                    play("select");
+                    setTimeout(() => {
+                      setPicking(null);
+                      go(2);
+                    }, window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420);
+                  }}
+                  className={`panel ${VIBE_GLOW[key]} flex w-full flex-col items-start gap-1 rounded-[24px] px-6 py-5 text-left transition duration-300 ${
+                    isPick ? "lit chosen" : vibe === key && !picking ? "lit" : ""
+                  } ${faded ? "scale-95 opacity-30" : ""}`}
+                >
+                  <span className={`tube ${VIBE_GLOW[key]} text-lg sm:text-xl`}>{VIBES[key].label}</span>
+                  <span className="text-sm text-ink-3">{VIBE_TAGLINES[key]}</span>
+                </button>
+              </Tilt>
+            );
+          })}
         </div>
       </section>
 
-      {/* 3. Context */}
-      <section hidden={step !== 2} className="flex flex-1 flex-col justify-center gap-8 py-8">
-        {step === 2 && <h2 className="word rise text-center text-6xl sm:text-8xl">Anything we should know?</h2>}
+      {/* 3. Context: one floating field that lights up when focused. */}
+      <section hidden={step !== 2} className="relative z-10 flex flex-1 flex-col items-center justify-center gap-10 py-6">
+        {step === 2 && (
+          <h2 className="word glow-cyan text-center text-6xl sm:text-8xl">
+            <Ink text="Anything we should know?" />
+          </h2>
+        )}
         <input
           id="context"
           name="context"
@@ -370,34 +432,37 @@ export function CreateForm({
           }}
           maxLength={200}
           placeholder="2am in Butler, week 3 of the semester…"
-          className="mx-auto w-full max-w-xl border-0 border-b-[1.5px] border-ink/15 bg-transparent px-1 py-3 text-center text-xl text-ink outline-none transition placeholder:text-ink-3/70 focus:border-ink sm:text-3xl"
+          className="neon-input max-w-xl text-xl sm:text-3xl"
         />
         <div className="flex flex-col items-center gap-3">
-          <NextButton onClick={() => go(3)} label={context.trim() ? "Next" : "Skip"} />
+          <button type="button" onClick={() => go(3)} className="btn-neon glow-cyan">
+            {context.trim() ? "Next" : "Skip"} <span aria-hidden>→</span>
+          </button>
           <p className="text-sm text-ink-3">Optional. The AI gets funnier with it.</p>
         </div>
       </section>
 
       {/* 4. The punchline */}
-      <section hidden={step !== 3} className="flex flex-1 flex-col items-center justify-center gap-6 py-6">
+      <section hidden={step !== 3} className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 py-6">
         {step === 3 && (
-          <h2 className="word rise text-center text-6xl sm:text-8xl">
-            {pending ? "Writing…" : "Ready for the punchline?"}
-          </h2>
+          <h2 className="word glow-pink text-center text-6xl sm:text-8xl">{pending ? <Ink key="w" text="Writing…" /> : <Ink text="Ready for the punchline?" />}</h2>
         )}
         {previewUrl && (
-          <div className={`relative overflow-hidden rounded-[28px] ${pending ? "breathe" : ""}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={previewUrl} alt="" className="max-h-[30svh] w-auto max-w-full object-contain" />
-            {pending && <span aria-hidden className="studio-scan absolute inset-x-0 h-24" />}
+          <div className="relative">
+            <span aria-hidden className="spotlight" />
+            <div className={`frame glow-pink ${pending ? "breathe [--glow:45,226,255]" : ""}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={previewUrl} alt="" className="max-h-[30svh] w-auto max-w-[78vw] rounded-[12px] object-contain" />
+              {pending && <span aria-hidden className="light-wave" />}
+            </div>
           </div>
         )}
         {!pending && (
           <p className="flex flex-wrap justify-center gap-2 text-sm">
-            <button type="button" onClick={() => go(1)} className="rounded-full bg-white px-3 py-1.5 ring-1 ring-line hover:ring-ink/30">
+            <button type="button" onClick={() => go(1)} className="chip-neon glow-violet">
               {VIBES[vibe].label}
             </button>
-            <button type="button" onClick={() => go(2)} className="max-w-[18rem] truncate rounded-full bg-white px-3 py-1.5 text-ink-2 ring-1 ring-line hover:ring-ink/30">
+            <button type="button" onClick={() => go(2)} className="chip-neon glow-cyan max-w-[18rem] truncate">
               {context.trim() ? `“${context.trim()}”` : "no context"}
             </button>
           </p>
@@ -405,7 +470,7 @@ export function CreateForm({
 
         {pending ? (
           <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-ink-2">
-            <span className="dots text-ink">
+            <span className="dots text-cyan">
               <i />
               <i />
               <i />
@@ -416,12 +481,8 @@ export function CreateForm({
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
-            <button
-              type="submit"
-              disabled={!ready}
-              className="group inline-flex items-center gap-3 rounded-full bg-punch px-9 py-4 text-lg font-medium text-white shadow-[0_20px_40px_-20px_rgba(255,91,46,0.9)] transition hover:scale-[1.03] active:scale-[0.97] disabled:opacity-40"
-            >
-              Generate &amp; post <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+            <button type="submit" disabled={!ready} onClick={() => play("select")} className="btn-neon btn-big glow-pink">
+              Make it funny <span aria-hidden>→</span>
             </button>
             <p className="max-w-xs text-center text-sm text-ink-3">
               The AI writes four captions and posts your meme in one go. Then classmates vote, blind.
@@ -436,17 +497,5 @@ export function CreateForm({
         )}
       </section>
     </form>
-  );
-}
-
-function NextButton({ onClick, label = "Next" }: { onClick: () => void; label?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rise group inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-lg font-medium text-white transition hover:scale-[1.03] active:scale-[0.97]"
-    >
-      {label} <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-    </button>
   );
 }
