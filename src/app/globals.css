@@ -498,6 +498,87 @@ body {
   }
 }
 
+/* Words that appear like invisible ink: each word sharpens out of a blur. */
+.ink-word {
+  display: inline-block;
+  animation: ink 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ink {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(6px);
+    letter-spacing: 0.04em;
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+/* A soft warm glow that follows a selection. */
+.glow {
+  box-shadow:
+    0 0 0 1px rgba(255, 91, 46, 0.35),
+    0 0 0 8px rgba(255, 91, 46, 0.08),
+    0 30px 60px -30px rgba(22, 21, 20, 0.55);
+}
+
+/* A meme sliding into view (Explore). */
+.slide-next {
+  animation: slide-next 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.slide-prev {
+  animation: slide-prev 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes slide-next {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes slide-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Bottom sheet. */
+.sheet-in {
+  animation: sheet-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Medal dots for Results. */
+.medal-1 {
+  background: radial-gradient(circle at 35% 30%, #fff3c9, #d4a73c 60%, #a87b1c);
+}
+.medal-2 {
+  background: radial-gradient(circle at 35% 30%, #ffffff, #c4c2c9 60%, #8f8c96);
+}
+.medal-3 {
+  background: radial-gradient(circle at 35% 30%, #ffe1c7, #c4834f 60%, #8e5530);
+}
+
 /* Kept for RevealBadge. */
 .animate-reveal {
   animation: pop 320ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;

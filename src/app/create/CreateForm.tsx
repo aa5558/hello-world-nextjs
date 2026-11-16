@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { IMAGE_PROMPT_IDEAS, IMAGE_PROMPT_MAX, VIBES, type Vibe } from "@/lib/captions";
 import type { LibraryImage } from "@/lib/library";
+import { Ink } from "@/app/components/ui";
 import { createGeneration, type CreateFormState } from "./actions";
 
 const initialState: CreateFormState = {};
@@ -40,7 +42,14 @@ export function CreateForm({
   library,
   initialImageId,
   submissionId,
+  dailyPrompt,
+  surpriseHref,
+  surprised,
 }: {
+  dailyPrompt: string;
+  // Where "Surprise me" / "try another" goes (a random released library photo).
+  surpriseHref: string;
+  surprised: boolean;
   // One id per form, used as the new post's id, so submitting twice can't
   // create two posts.
   submissionId: string;
@@ -56,6 +65,7 @@ export function CreateForm({
   const initialLibrary = libraryChoices.find((image) => image.id === initialImageId) ?? null;
 
   const [step, setStep] = useState(0);
+  const [browsing, setBrowsing] = useState(false);
   const [source, setSource] = useState<Source>(initialLibrary ? "library" : "upload");
   const [libraryId, setLibraryId] = useState<string | null>(initialLibrary?.id ?? libraryChoices[0]?.id ?? null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -141,7 +151,12 @@ export function CreateForm({
 
       {/* 1. The moment */}
       <section hidden={step !== 0} className="screen-in flex flex-1 flex-col justify-center gap-8 py-8">
-        <h1 className="word rise text-center text-6xl sm:text-8xl">Show me the moment.</h1>
+        <div className="flex flex-col items-center gap-3">
+          <h1 className="word text-center text-6xl sm:text-8xl">
+            <Ink text={surprised && source === "library" ? "Surprise." : "Show me the moment."} />
+          </h1>
+          <p className="rise text-sm text-ink-3 [animation-delay:400ms]">today&apos;s prompt · “{dailyPrompt}”</p>
+        </div>
 
         <label
           onDragOver={(e) => {
@@ -192,7 +207,18 @@ export function CreateForm({
           </p>
         )}
 
-        {source === "library" && (
+        {source === "library" && !browsing && chosenLibrary && (
+          <figure className="rise mx-auto flex flex-col items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={chosenLibrary.url} alt={chosenLibrary.altText} className="max-h-[38svh] w-auto max-w-full rounded-[28px] object-contain shadow-[0_40px_80px_-40px_rgba(22,21,20,0.45)]" />
+            <figcaption className="text-sm text-ink-3">
+              {chosenLibrary.title}
+              {chosenLibrary.id === dailyDrop?.id ? " · today's photo" : ""}
+            </figcaption>
+          </figure>
+        )}
+
+        {source === "library" && browsing && (
           <div role="radiogroup" aria-label="Library photo" className="rise mx-auto grid w-full max-w-lg grid-cols-3 gap-2 sm:grid-cols-4">
             {libraryChoices.map((image) => {
               const isDrop = image.id === dailyDrop?.id;
@@ -203,7 +229,10 @@ export function CreateForm({
                   role="radio"
                   aria-checked={libraryId === image.id}
                   aria-label={`${image.title}${isDrop ? " (today's drop)" : ""}`}
-                  onClick={() => setLibraryId(image.id)}
+                  onClick={() => {
+                    setLibraryId(image.id);
+                    setBrowsing(false);
+                  }}
                   className={`relative aspect-square overflow-hidden rounded-[18px] transition ${
                     libraryId === image.id ? "ring-[3px] ring-ink ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
                   }`}
@@ -253,9 +282,34 @@ export function CreateForm({
                 upload my own
               </button>
             )}
-            {source !== "library" && libraryChoices.length > 0 && (
-              <button type="button" onClick={() => setSource("library")} className="underline-offset-4 hover:text-ink hover:underline">
-                {dailyDrop ? "or use today's photo" : "or pick one of ours"}
+            {dailyDrop && !(source === "library" && libraryId === dailyDrop.id && !browsing) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSource("library");
+                  setLibraryId(dailyDrop.id);
+                  setBrowsing(false);
+                }}
+                className="underline-offset-4 hover:text-ink hover:underline"
+              >
+                use today&apos;s photo
+              </button>
+            )}
+            {libraryChoices.length > 0 && (
+              <Link href={surpriseHref} className="underline-offset-4 hover:text-ink hover:underline">
+                {surprised && source === "library" ? "try another" : "surprise me"}
+              </Link>
+            )}
+            {libraryChoices.length > 1 && !(source === "library" && browsing) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSource("library");
+                  setBrowsing(true);
+                }}
+                className="underline-offset-4 hover:text-ink hover:underline"
+              >
+                browse our photos
               </button>
             )}
             {source !== "ai" && aiPhotosEnabled && (
@@ -316,7 +370,7 @@ export function CreateForm({
           }}
           maxLength={200}
           placeholder="2am in Butler, week 3 of the semester…"
-          className="mx-auto w-full max-w-xl border-0 border-b-[1.5px] border-ink/15 bg-transparent px-1 py-3 text-center text-2xl text-ink outline-none transition placeholder:text-ink-3/70 focus:border-ink sm:text-3xl"
+          className="mx-auto w-full max-w-xl border-0 border-b-[1.5px] border-ink/15 bg-transparent px-1 py-3 text-center text-xl text-ink outline-none transition placeholder:text-ink-3/70 focus:border-ink sm:text-3xl"
         />
         <div className="flex flex-col items-center gap-3">
           <NextButton onClick={() => go(3)} label={context.trim() ? "Next" : "Skip"} />

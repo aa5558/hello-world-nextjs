@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signInWithGoogle } from "@/app/auth/actions";
 import { safeNext } from "@/lib/redirect";
 import { createClient } from "@/lib/supabase/server";
+import { Ink } from "@/app/components/ui";
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth: "We couldn't sign you in. Please try again.",
@@ -15,12 +17,6 @@ function domainList(domains: string[]) {
   const named = domains.map((d) => `@${d}`);
   return named.length <= 2 ? named.join(" or ") : `${named.slice(0, -1).join(", ")}, or ${named.at(-1)}`;
 }
-
-const PERKS = [
-  ["🗳️", "Vote blind, then see who really wrote it"],
-  ["✍️", "Throw your own captions into the ring"],
-  ["🏆", "Win the daily challenge (and the bragging rights)"],
-];
 
 export default async function LoginPage(props: PageProps<"/login">) {
   const searchParams = await props.searchParams;
@@ -42,65 +38,42 @@ export default async function LoginPage(props: PageProps<"/login">) {
   const gated = rules.restricted && rules.domains.length > 0;
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-5 pb-10 pt-20 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
-      <section className="animate-fade-up flex flex-col gap-6">
-        <p className="eyebrow">sign in</p>
-        <h1 className="display text-5xl text-ink sm:text-7xl">
-          Your meme era
-          <br />
-          <span className="serif text-sky-deep">starts here.</span>
-        </h1>
-        <ul className="flex flex-col gap-3">
-          {PERKS.map(([emoji, text]) => (
-            <li key={text} className="flex items-center gap-3 text-[16px] text-ink-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg shadow-sm ring-1 ring-line">
-                {emoji}
-              </span>
-              {text}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="glass animate-fade-up relative overflow-hidden rounded-[36px] p-8 [animation-delay:120ms] sm:p-10">
-        <span aria-hidden className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-ice/70 blur-3xl" />
-        <div className="relative flex flex-col gap-5">
-          <span className="orb flex h-14 w-14 items-center justify-center rounded-full">
-            <span className="display text-xl text-ink">mm</span>
-          </span>
-          <div>
-            <h2 className="display text-3xl">Hey bestie 👋</h2>
-            <p className="mt-1 text-sm text-ink-2">One tap with your Google account and you&apos;re in.</p>
-          </div>
-          {error && (
-            <p role="alert" className="rounded-[18px] bg-down-soft px-4 py-3 text-sm text-down-ink">
-              {error === "signup_blocked"
-                ? gated
-                  ? `New accounts are limited to ${domainList(rules.domains)} emails right now. Sign in with your school Google account, or ask an admin to add your email.`
-                  : "We couldn't create an account for that email. Try your school Google account, or ask an admin to add you."
-                : (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.")}
-            </p>
-          )}
-          <form action={signInWithGoogle}>
-            <input type="hidden" name="next" value={next} />
-            <button type="submit" className="btn btn-primary btn-lg w-full">
-              <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5">
-                <path fill="#fff" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.2 14.6 2.2 12 2.2 6.6 2.2 2.2 6.6 2.2 12s4.4 9.8 9.8 9.8c5.7 0 9.4-4 9.4-9.6 0-.6-.1-1.1-.2-1.6H12z" />
-              </svg>
-              Continue with Google
-            </button>
-          </form>
-          {gated && error !== "signup_blocked" && (
-            <p className="rounded-[18px] bg-powder px-4 py-3 text-sm text-ink">
-              🎓 New here? Use your {domainList(rules.domains)} Google account. Already have an account? Any
-              Google login you&apos;ve used before still works.
-            </p>
-          )}
-          <p className="text-xs leading-relaxed text-ink-3">
-            Classmates only ever see vote totals, never how you voted.
-          </p>
-        </div>
-      </section>
+    <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-2xl flex-col items-center justify-center gap-7 px-5 pb-12 pt-24 text-center sm:px-8">
+      <h1 className="word text-6xl sm:text-8xl">
+        <Ink text="Sign in to keep going." />
+      </h1>
+      <p className="rise max-w-sm text-lg text-ink-2 [animation-delay:500ms]">
+        One tap with Google. Classmates only ever see vote totals, never how you voted.
+      </p>
+      {error && (
+        <p role="alert" className="max-w-md text-[15px] text-down-ink">
+          {error === "signup_blocked"
+            ? gated
+              ? `New accounts are limited to ${domainList(rules.domains)} emails right now. Sign in with your school Google account, or ask an admin to add your email.`
+              : "We couldn't create an account for that email. Try your school Google account, or ask an admin to add you."
+            : (ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.")}
+        </p>
+      )}
+      <form action={signInWithGoogle} className="rise [animation-delay:700ms]">
+        <input type="hidden" name="next" value={next} />
+        <button
+          type="submit"
+          className="group inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-lg font-medium text-white transition hover:scale-[1.03] active:scale-[0.97]"
+        >
+          <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5">
+            <path fill="#fff" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.2 14.6 2.2 12 2.2 6.6 2.2 2.2 6.6 2.2 12s4.4 9.8 9.8 9.8c5.7 0 9.4-4 9.4-9.6 0-.6-.1-1.1-.2-1.6H12z" />
+          </svg>
+          Continue with Google
+        </button>
+      </form>
+      {gated && error !== "signup_blocked" && (
+        <p className="max-w-sm text-sm text-ink-3">
+          New here? Use your {domainList(rules.domains)} Google account. Already have an account? Any Google login you&apos;ve used before still works.
+        </p>
+      )}
+      <Link href="/?start=choose" className="text-sm text-ink-3 underline-offset-4 hover:text-ink hover:underline">
+        not now
+      </Link>
     </main>
   );
 }

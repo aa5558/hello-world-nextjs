@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { castVote } from "@/app/votes/actions";
+import { Ink } from "@/app/components/ui";
+import { Sparkles } from "@/app/components/Sparkles";
 import type { Reveal } from "@/lib/feed";
 
 type Caption = { id: string; text: string };
@@ -56,7 +58,7 @@ export function PlayRound({
   const line = lines[(picked ?? "a").charCodeAt(0) % lines.length];
 
   return (
-    <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-5xl flex-col items-center justify-center gap-6 px-5 pb-10 pt-20 sm:gap-8 sm:px-8">
+    <div className="screen-in flex w-full flex-col items-center gap-6 sm:gap-8">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={imageUrl}
@@ -65,7 +67,7 @@ export function PlayRound({
       />
 
       <h1 className="word text-center text-5xl sm:text-6xl" aria-live="polite">
-        {done ? line : "Which one’s funnier?"}
+        {done ? <Ink key="line" text={line} /> : "Which one’s funnier?"}
       </h1>
 
       <div className="grid w-full gap-3 sm:grid-cols-2 sm:gap-4">
@@ -82,12 +84,13 @@ export function PlayRound({
               data-caption-id={caption.id}
               className={`relative flex min-h-28 flex-col items-start justify-between gap-4 rounded-[24px] p-5 text-left text-[18px] leading-snug transition duration-500 sm:min-h-36 sm:p-6 sm:text-xl ${
                 isPick
-                  ? "chosen bg-ink text-white shadow-[0_30px_60px_-30px_rgba(22,21,20,0.6)]"
+                  ? "chosen glow bg-ink text-white"
                   : faded
                     ? "bg-white/40 text-ink-3 opacity-40 ring-1 ring-line"
                     : "bg-white text-ink ring-1 ring-line hover:-translate-y-0.5 hover:shadow-[0_24px_48px_-28px_rgba(22,21,20,0.35)] active:scale-[0.98]"
               } disabled:cursor-default`}
             >
+              {isPick && done && <Sparkles />}
               <span>“{caption.text}”</span>
               {isPick && (
                 <span className="text-sm font-medium">
@@ -125,9 +128,14 @@ export function PlayRound({
             >
               Again? <span aria-hidden>→</span>
             </Link>
-            <Link href={`/g/${generationId}`} className="rise text-sm text-ink-3 underline-offset-4 hover:text-ink hover:underline" style={{ animationDelay: "120ms" }}>
-              see every caption on this photo
-            </Link>
+            <p className="rise flex gap-4 text-sm text-ink-3" style={{ animationDelay: "120ms" }}>
+              <Link href={`/g/${generationId}`} className="underline-offset-4 hover:text-ink hover:underline">
+                every caption on this photo
+              </Link>
+              <Link href="/results" className="underline-offset-4 hover:text-ink hover:underline">
+                who&apos;s winning today
+              </Link>
+            </p>
           </>
         ) : (
           <p className="text-sm text-ink-3">
@@ -138,6 +146,6 @@ export function PlayRound({
           </p>
         )}
       </div>
-    </main>
+    </div>
   );
 }

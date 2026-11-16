@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { Menu } from "@/app/components/Menu";
 import { createClient } from "@/lib/supabase/server";
@@ -25,7 +26,7 @@ const instrument = Instrument_Serif({
 export const metadata: Metadata = {
   title: "Morningside Memes",
   description:
-    "Your humor. Our AI. Upload a photo, let AI write captions, add your own, and see whose caption wins.",
+    "Make something funny. Turn a campus moment into a meme, let the AI write captions, then play: which one's funnier?",
 };
 
 export const viewport: Viewport = {
@@ -44,7 +45,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${instrument.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <Menu signedIn={Boolean(user)} />
+        <Suspense fallback={null}>
+          <Menu signedIn={Boolean(user)} />
+        </Suspense>
         {children}
       </body>
     </html>

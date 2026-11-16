@@ -47,79 +47,109 @@ test.describe("signed out", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("hey.");
     await expect(page.getByText("Ready to make something funny?")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Open menu" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Places" })).toHaveCount(0);
     await page.getByRole("button", { name: /Let's go/ }).click();
-    await expect(page.getByRole("link", { name: /Create/ })).toHaveAttribute("href", "/login?next=/create");
-    await page.getByRole("link", { name: /Play/ }).click();
+    await expect(page.getByRole("link", { name: /^Create/ })).toHaveAttribute("href", "/login?next=/create");
+    const more = page.getByRole("navigation", { name: "More" });
+    await expect(more.getByRole("link", { name: "explore" })).toHaveAttribute("href", "/explore");
+    await expect(more.getByRole("link", { name: "results" })).toHaveAttribute("href", "/results");
+    await expect(more.getByRole("link", { name: "you" })).toHaveAttribute("href", "/login?next=/you");
+    await page.getByRole("link", { name: /^Play/ }).click();
     await expect(page).toHaveURL(/\/play/);
     await expect(page.getByRole("heading", { name: /Which one.s funnier/ })).toBeVisible();
-    // The wordmark returns straight to the choice.
-    await page.getByRole("link", { name: /morningside memes/ }).click();
-    await expect(page.getByRole("link", { name: /Play/ })).toBeVisible();
+    // The wordmark always returns to the choice.
+    await page.getByRole("link", { name: "Morningside Memes, home" }).click();
+    await expect(page.getByRole("link", { name: /^Play/ })).toBeVisible();
   });
 
-  test("the menu reaches every secondary feature", async ({ page }) => {
+  test("places: five words reach every part of the app", async ({ page }) => {
     await page.goto("/play");
-    await page.getByRole("button", { name: "Open menu" }).click();
-    const menu = page.getByRole("dialog", { name: "Menu" });
-    for (const name of ["Create", "Play", "Feed", "Leaderboard", "Surprise me", "Human or AI?", "My Era", "Sign in"]) {
-      await expect(menu.getByRole("link", { name: new RegExp(`^${name.replace("?", "\\?")}`) })).toBeVisible();
+    await page.getByRole("button", { name: "Places" }).click();
+    const places = page.getByRole("dialog", { name: "Places" });
+    for (const word of ["Create", "Play", "Explore", "Results", "You"]) {
+      await expect(places.getByRole("link", { name: new RegExp(`^${word}`) })).toBeVisible();
     }
-    await menu.getByRole("link", { name: /^Leaderboard/ }).click();
-    await expect(page).toHaveURL(/\/challenge/);
-    await expect(page.getByRole("dialog", { name: "Menu" })).toHaveCount(0);
+    await places.getByRole("link", { name: /^Results/ }).click();
+    await expect(page).toHaveURL(/\/results/);
+    await expect(page.getByRole("dialog", { name: "Places" })).toHaveCount(0);
   });
 
-  test("the feed shows the scoreboard, challenge and posts", async ({ page }) => {
+  test("old addresses land on their new screens", async ({ page }) => {
     await page.goto("/feed");
-    await expect(page.getByText("the scoreboard · all time")).toBeVisible();
-    await expect(page.getByText("today's challenge").first()).toBeVisible();
-    expect(await page.locator("article").count()).toBeGreaterThan(5);
-    await page.getByRole("link", { name: "Top this week" }).click();
-    await expect(page).toHaveURL(/sort=top/);
-    await expect(page.getByRole("heading", { name: /Top this week/ })).toBeVisible();
-  });
-
-  test("Human or AI? game works without an account", async ({ page }) => {
-    await page.goto("/feed");
-    const game = page.locator("#guess");
-    await game.getByRole("button", { name: /Human/ }).click();
-    await expect(game.getByText(/called it|fooled you/)).toBeVisible();
-    await expect(game.getByText("1/1 right").or(game.getByText("0/1 right"))).toBeVisible();
-    await game.getByRole("button", { name: "Next caption →" }).click();
-    await expect(game.getByRole("button", { name: /AI/ })).toBeVisible();
-  });
-
-  test("challenge, post and surprise pages render; voting asks you to sign in", async ({ page }) => {
+    await expect(page).toHaveURL(/\/explore/);
+    await page.goto("/feed?sort=top");
+    await expect(page).toHaveURL(/\/explore\?sort=top/);
     await page.goto("/challenge");
-    await expect(page.getByRole("heading", { name: /leaderboard/ })).toBeVisible();
+    await expect(page).toHaveURL(/\/results$/);
     await page.goto("/surprise");
-    await expect(page).toHaveURL(/surprise\?id=/);
-    await expect(page.locator("article")).toHaveCount(1);
-    await page.getByRole("link", { name: "Sign in to vote" }).first().click();
-    await expect(page).toHaveURL(/\/login\?next=%2Fsurprise/);
+    await expect(page).toHaveURL(/\/play\?mode=turn/);
+  });
+
+  test("Explore: one meme at a time, next/previous, keyboard, the overview, and sorting", async ({ page }) => {
+    await page.goto("/explore");
+    const photo = page.locator("figure img").first();
+    const first = await photo.getAttribute("src");
+    await expect(page.getByRole("list", { name: "Captions on this meme" })).toBeVisible();
+    await page.getByRole("button", { name: "Next meme" }).click();
+    await expect(page.locator("figure img").first()).not.toHaveAttribute("src", first!);
+    await expect(page).toHaveURL(/\/explore\?id=/);
+    await page.keyboard.press("ArrowLeft");
+    await expect(page.locator("figure img").first()).toHaveAttribute("src", first!);
+    // The overview (the old photo wall) shows every meme.
+    await page.getByRole("button", { name: /^1 \/ \d+$/ }).click();
+    const all = page.getByRole("dialog", { name: "All memes" });
+    expect(await all.getByRole("button").count()).toBeGreaterThan(5);
+    await all.getByRole("button", { name: "Close" }).click();
+    await page.getByRole("link", { name: "top this week" }).click();
+    await expect(page).toHaveURL(/sort=top/);
+    // Voting needs an account.
+    await page.goto("/explore");
+    await page.getByRole("list", { name: "Captions on this meme" }).getByRole("button", { name: "Upvote" }).first().click();
+    await expect(page).toHaveURL(/\/login\?next=/);
+  });
+
+  test("Human or AI? is a Play mode that works without an account", async ({ page }) => {
+    await page.goto("/play?mode=guess");
+    await expect(page.getByRole("heading", { name: "Human or AI?" })).toBeVisible();
+    await page.getByRole("button", { name: "Human", exact: true }).click();
+    await expect(page.getByText(/Called it\.|Fooled you\./).first()).toBeVisible();
+    await expect(page.getByText(/^[01]\/1 right$/)).toBeVisible();
+    await page.getByRole("button", { name: /Again/ }).click();
+    await expect(page.getByRole("button", { name: "AI", exact: true })).toBeVisible();
+  });
+
+  test("Your turn (the random-battle Surprise) shows a posted photo and asks you to sign in to write", async ({ page }) => {
+    await page.goto("/play?mode=turn");
+    await expect(page.getByRole("heading", { name: "Your turn." })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Sign in/ }).last()).toHaveAttribute("href", /\/login\?next=/);
+  });
+
+  test("Results: a step-by-step reveal of today, the top captions, yesterday and Humans vs AI", async ({ page }) => {
+    await page.goto("/results");
+    await expect(page.getByRole("heading", { name: "Want to know who's winning?" })).toBeVisible();
+    await page.getByRole("button", { name: /Show me/ }).click();
+    await expect(page.getByRole("heading", { name: getDailyPrompt() })).toBeVisible();
+    await page.getByRole("button", { name: /Who's on top/ }).click();
+    await expect(
+      page.getByRole("list", { name: "Today's top captions" }).or(page.getByRole("heading", { name: "Nobody's voted yet." }))
+    ).toBeVisible();
+    await page.getByRole("button", { name: /And yesterday/ }).click();
+    await expect(page.getByText(/Yesterday.s winner|No winner yesterday/).first()).toBeVisible();
+    await page.getByRole("button", { name: /Humans vs AI/ }).click();
+    await expect(page.getByText("Humans vs AI · all time")).toBeVisible();
+    // Back works, and so does skipping.
+    await page.getByRole("button", { name: "← back" }).click();
+    await expect(page.getByText(/Yesterday.s winner|No winner yesterday/).first()).toBeVisible();
+    await page.getByRole("button", { name: "skip to the end" }).click();
+    await expect(page.getByText("Humans vs AI · all time")).toBeVisible();
   });
 
   test("the Daily Drop features today's library photo, never tomorrow's", async ({ page }) => {
-    await page.goto("/challenge");
+    await page.goto("/results");
+    await page.getByRole("button", { name: /Show me/ }).click();
     await expect(page.getByRole("img", { name: "Students sitting on snowy Low Steps in puffer jackets" })).toBeVisible();
-    await expect(page.getByText("📍 Low Steps, first snow")).toBeVisible();
-    await expect(page.getByRole("link", { name: "✨ Meme today's drop" })).toHaveAttribute("href", /\/login\?next=%2Fcreate%3Fimage%3Df0000000/);
+    await expect(page.getByRole("link", { name: "make one with today's photo" })).toHaveAttribute("href", /\/login\?next=%2Fcreate%3Fimage%3Df0000000/);
     await expect(page.locator("body")).not.toContainText("Tomorrow's surprise");
-  });
-
-  test("Surprise Me: fresh-photo mode rolls released library images only", async ({ page }) => {
-    const seen = new Set<string>();
-    for (let i = 0; i < 8; i++) {
-      await page.goto("/surprise?mode=fresh");
-      await expect(page).toHaveURL(/mode=fresh&id=f0000000/);
-      seen.add(new URL(page.url()).searchParams.get("id")!);
-      await expect(page.getByRole("link", { name: "✨ Make it a meme" })).toBeVisible();
-    }
-    expect(seen.has("f0000000-0000-4000-8000-000000000004")).toBe(false); // tomorrow's drop
-    // Asking for the unreleased one by id shows nothing.
-    await page.goto("/surprise?mode=fresh&id=f0000000-0000-4000-8000-000000000004");
-    await expect(page.getByText("The photo library is empty.")).toBeVisible();
   });
 
   test("finished battles show the final result; today's don't", async ({ page }) => {
@@ -130,18 +160,12 @@ test.describe("signed out", () => {
     );
     await page.goto(`/g/${past.id}`);
     await expect(page.getByLabel("Final result")).toBeVisible();
-    await expect(page.getByLabel("Final result")).toContainText(/Humans win|Gemini took it|Dead heat/);
+    await expect(page.getByLabel("Final result")).toContainText(/humans won|the AI took it|dead heat|no humans showed up/);
     const today = await sql<{ id: string }>(`select id from public.generations where challenge_date = (now() at time zone 'America/New_York')::date limit 1`);
     if (today.length) {
       await page.goto(`/g/${today[0].id}`);
       await expect(page.getByLabel("Final result")).toHaveCount(0);
     }
-  });
-
-  test("the photo wall lays out every post as a tile", async ({ page }) => {
-    await page.goto("/feed?view=wall");
-    await expect(page.locator("#feed article")).toHaveCount(0);
-    expect(await page.locator('#feed a[href^="/g/"]').count()).toBeGreaterThan(5);
   });
 
   test("login explains the signup gate, and a blocked signup gets a clear message", async ({ page }) => {
@@ -163,7 +187,7 @@ test.describe("signed out", () => {
   });
 
   test("private pages redirect to login", async ({ request }) => {
-    for (const path of ["/create", "/me", "/profile"]) {
+    for (const path of ["/create", "/me", "/profile", "/you"]) {
       const res = await request.get(path, { maxRedirects: 0 });
       expect(res.status(), path).toBe(307);
       expect(res.headers().location, path).toContain(`/login?next=${encodeURIComponent(path)}`);
@@ -181,7 +205,7 @@ test.describe("signed in", () => {
   test("voting reveals the author and updates the database", async ({ page, context }) => {
     const riley = USERS.find((u: { id: string }) => u.id === REGULAR_ID);
     await signIn(context, riley);
-    // A post Riley hasn't voted on anything in yet.
+    // A caption Riley hasn't voted on yet.
     const [target] = await sql<{ id: string; generation_id: string }>(
       `select c.id, c.generation_id from public.captions c
        where not exists (select 1 from public.caption_votes v where v.user_id = $1 and v.caption_id = c.id)
@@ -191,96 +215,149 @@ test.describe("signed in", () => {
     await page.goto(`/g/${target.generation_id}`);
     const [{ text }] = await sql<{ text: string }>(`select text from public.captions where id = $1`, [target.id]);
     const row = page.locator("li").filter({ hasText: text }).first();
-    await expect(row.getByText("👀 human or AI?")).toBeVisible();
+    await expect(row.getByText("human or AI? vote to find out")).toBeVisible();
     await row.getByRole("button", { name: "Upvote" }).click();
-    await expect(row.getByText(/🤖 Gemini|🧑‍🎓/)).toBeVisible();
+    await expect(row.getByText(/written by/)).toBeVisible();
     await expect(row.getByRole("button", { name: "Upvote" })).toHaveAttribute("aria-pressed", "true");
     const votes = await sql(`select vote from public.caption_votes where user_id = $1 and caption_id = $2`, [REGULAR_ID, target.id]);
     expect(votes).toEqual([{ vote: 1 }]);
 
-    // Clicking again removes the vote.
+    // Tapping again removes the vote.
     await row.getByRole("button", { name: "Upvote" }).click();
     await expect(row.getByRole("button", { name: "Upvote" })).toHaveAttribute("aria-pressed", "false");
     await expect.poll(async () => (await sql(`select 1 from public.caption_votes where user_id = $1 and caption_id = $2`, [REGULAR_ID, target.id])).length).toBe(0);
   });
 
-  test("add, edit and delete your own caption (with the confirm dialog)", async ({ page, context }) => {
+  test("write, edit and delete your own caption in Explore (with confirmation)", async ({ page, context }) => {
     await signIn(context, USERS[5]);
     const postId = "c0000000-0000-4000-8000-000000000020";
     await page.goto(`/g/${postId}`);
     const text = `e2e caption ${Date.now()}`;
-    await page.getByPlaceholder("your caption goes here…").fill(text);
-    await page.getByRole("button", { name: "Post", exact: true }).click();
-    await expect(page.getByText(/you're in the ring/)).toBeVisible();
-    await page.reload();
+    await page.getByRole("button", { name: "Write yours" }).click();
+    await page.getByRole("textbox", { name: "Your caption" }).fill(text);
+    await page.getByRole("button", { name: /Add my caption/ }).click();
     const row = page.locator("li", { hasText: text });
-    await expect(row.getByText("🧑‍🎓 you")).toBeVisible();
+    await expect(row.getByText("yours")).toBeVisible();
 
-    await row.getByRole("button", { name: "✏️ Edit" }).click();
-    await row.getByRole("textbox", { name: "Edit your caption" }).fill(`${text} (edited)`);
-    await row.getByRole("button", { name: "Save" }).click();
+    await row.getByRole("button", { name: "Your caption: edit or delete" }).click();
+    await page.getByRole("dialog", { name: "Your caption" }).getByRole("button", { name: "Edit" }).click();
+    await page.getByRole("dialog", { name: "Edit your caption" }).getByRole("textbox", { name: "Caption" }).fill(`${text} (edited)`);
+    await page.getByRole("dialog", { name: "Edit your caption" }).getByRole("button", { name: "Save" }).click();
     await expect(page.getByText(`${text} (edited)`)).toBeVisible();
 
     const edited = page.locator("li", { hasText: `${text} (edited)` });
-    await edited.getByRole("button", { name: "🗑️ Delete" }).click();
-    const dialog = page.getByRole("dialog");
-    await expect(dialog.getByRole("heading", { name: "Delete your caption?" })).toBeVisible();
-    await dialog.getByRole("button", { name: "Keep it" }).click();
+    await edited.getByRole("button", { name: "Your caption: edit or delete" }).click();
+    await page.getByRole("dialog", { name: "Your caption" }).getByRole("button", { name: "Delete" }).click();
+    const confirm = page.getByRole("dialog", { name: "Delete your caption?" });
+    await confirm.getByRole("button", { name: "Keep it" }).click();
     await expect(edited).toBeVisible();
-    await edited.getByRole("button", { name: "🗑️ Delete" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Delete caption" }).click();
+    await edited.getByRole("button", { name: "Your caption: edit or delete" }).click();
+    await page.getByRole("dialog", { name: "Your caption" }).getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("dialog", { name: "Delete your caption?" }).getByRole("button", { name: "Delete caption" }).click();
     await expect(page.getByText(`${text} (edited)`)).toHaveCount(0);
     expect((await sql(`select 1 from public.captions where text like $1`, [`${text}%`])).length).toBe(0);
   });
 
-  test("Your Meme Era: era headline and achievements reflect real activity", async ({ page, context }) => {
+  test("Your turn: write a caption for a random posted photo", async ({ page, context }) => {
+    await signIn(context, USERS[4]);
+    await page.goto("/play?mode=turn");
+    const text = `turn caption ${Date.now()}`;
+    await page.getByRole("textbox", { name: "Your caption" }).fill(text);
+    await page.getByRole("button", { name: /Add my caption/ }).click();
+    await expect(page.getByRole("heading", { name: "It's in." })).toBeVisible();
+    const rows = await sql(`select author_type from public.captions where text = $1`, [text]);
+    expect(rows).toEqual([{ author_type: "human" }]);
+    await page.getByRole("link", { name: /Again/ }).click();
+    await expect(page).toHaveURL(/mode=turn&id=[0-9a-f-]{36}&seen=/);
+  });
+
+  test("Create: Surprise me only rolls released library photos", async ({ page, context }) => {
+    await signIn(context, USERS[3]);
+    const seen = new Set<string>();
+    for (let i = 0; i < 8; i++) {
+      await page.goto("/create?surprise=1");
+      const id = await page.locator('input[name="library_image"]').getAttribute("value");
+      expect(id).toMatch(/^f0000000/);
+      seen.add(id!);
+      await expect(page.getByRole("heading", { name: "Surprise." })).toBeVisible();
+    }
+    expect(seen.has("f0000000-0000-4000-8000-000000000004")).toBe(false); // tomorrow's drop
+    // Asking for the unreleased one by id doesn't select it.
+    await page.goto("/create?image=f0000000-0000-4000-8000-000000000004");
+    await expect(page.locator('input[name="library_image"]')).toHaveCount(0);
+    // The old address still works.
+    await page.goto("/surprise?mode=fresh");
+    await expect(page).toHaveURL(/\/create\?surprise=1/);
+  });
+
+  test("You: era and achievements reflect real activity", async ({ page, context }) => {
     await signIn(context, MAYA);
-    await page.goto("/me");
+    await page.goto("/you");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("era");
+    await page.getByRole("navigation", { name: "You" }).getByRole("link", { name: "achievements" }).click();
     const firstDrop = page.locator("li", { hasText: "First drop" });
-    await expect(firstDrop).toContainText("✓ unlocked"); // Maya has posts
+    await expect(firstDrop).toContainText("earned"); // Maya has posts
     const [{ votes }] = await sql<{ votes: number }>(`select count(*) votes from public.caption_votes where user_id = $1`, [MAYA.id]);
-    const ballot = page.locator("li", { hasText: "Ballot box" });
-    await expect(ballot).toContainText(Number(votes) >= 25 ? "✓ unlocked" : `${votes}/25`);
+    await expect(page.locator("li", { hasText: "Ballot box" })).toContainText(Number(votes) >= 25 ? "earned" : `${votes}/25`);
 
     // Someone who has never posted or captioned hasn't unlocked those.
     await context.clearCookies();
     await signIn(context, USERS[1]);
-    await page.goto("/me");
+    await page.goto("/you");
     await expect(page.getByText("Era loading…")).toBeVisible();
+    await page.goto("/you?s=achievements");
     for (const name of ["First drop", "In the ring", "Beat the machine", "Range"]) {
-      await expect(page.locator("li", { hasText: name })).not.toContainText("✓ unlocked");
+      await expect(page.locator("li", { hasText: name })).not.toContainText("earned");
     }
+    // The old address lands here.
+    await page.goto("/me?tab=captions");
+    await expect(page).toHaveURL(/\/you\?s=captions/);
   });
 
-  test("My Posts: stats, tabs, and deleting your own post after confirming", async ({ page, context }) => {
+  test("You: your memes, one at a time, and deleting one after confirming", async ({ page, context }) => {
     await signIn(context, MAYA);
-    await page.goto("/me");
-    const [{ n }] = await sql<{ n: number }>(`select count(*) n from public.generations where user_id = $1`, [MAYA.id]);
-    await expect(page.getByText(`📸 My photos (${n})`)).toBeVisible();
-    await page.getByRole("link", { name: /My captions/ }).click();
-    await expect(page).toHaveURL(/tab=captions/);
-    await page.getByRole("link", { name: /My photos/ }).click();
-
-    const article = page.locator("article").first();
-    await article.getByRole("button", { name: "🗑️ Delete post" }).click();
-    await expect(page.getByRole("dialog").getByRole("heading", { name: "Delete this post?" })).toBeVisible();
-    await page.getByRole("dialog").getByRole("button", { name: "Delete post" }).click();
-    await expect.poll(async () => (await sql<{ n: number }>(`select count(*) n from public.generations where user_id = $1`, [MAYA.id]))[0].n).toBe(n - 1);
-    // Someone else's post is untouched, and you can't see delete controls on it.
+    const [{ n }] = await sql<{ n: number }>(`select count(*)::int n from public.generations where user_id = $1`, [MAYA.id]);
+    await page.goto("/you?s=memes");
+    await expect(page.getByRole("heading", { name: "Your memes" })).toBeVisible();
+    await expect(page.getByRole("button", { name: `1 / ${n}` })).toBeVisible();
+    await page.getByRole("button", { name: "··· your meme" }).click();
+    await page.getByRole("dialog", { name: "Your meme" }).getByRole("button", { name: "Delete this meme" }).click();
+    await page.getByRole("dialog", { name: "Delete this meme?" }).getByRole("button", { name: "Delete post" }).click();
+    await expect.poll(async () => (await sql<{ n: number }>(`select count(*)::int n from public.generations where user_id = $1`, [MAYA.id]))[0].n).toBe(n - 1);
+    await page.goto("/you?s=captions");
+    await expect(page.getByRole("heading", { name: /Your captions|No captions yet\./ })).toBeVisible();
+    // Someone else's post: no owner controls.
     await page.goto("/g/c0000000-0000-4000-8000-000000000004");
-    await expect(page.getByRole("button", { name: /Delete post/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "··· your meme" })).toHaveCount(0);
   });
 
-  test("profile page saves your name", async ({ page, context }) => {
+  test("You: editing the context line of your own meme", async ({ page, context }) => {
+    await signIn(context, MAYA);
+    await page.goto("/you?s=memes");
+    await page.getByRole("button", { name: "··· your meme" }).click();
+    await page.getByRole("dialog", { name: "Your meme" }).getByRole("button", { name: "Edit the context line" }).click();
+    const line = `e2e context ${Date.now()}`;
+    await page.getByRole("dialog", { name: "Edit the context line" }).getByRole("textbox", { name: "Context" }).fill(line);
+    await page.getByRole("dialog", { name: "Edit the context line" }).getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText(line).first()).toBeVisible();
+    const rows = await sql(`select 1 from public.generations where user_id = $1 and context = $2`, [MAYA.id, line]);
+    expect(rows.length).toBe(1);
+  });
+
+  test("account settings save your name (and /profile still works)", async ({ page, context }) => {
     await signIn(context, USERS[6]);
     await page.goto("/profile");
+    await expect(page).toHaveURL(/\/you\?s=account/);
     await page.getByLabel("First name").fill("Sofia");
     await page.getByLabel("Last name").fill("Rossi-E2E");
     await page.getByRole("button", { name: "Save profile" }).click();
-    await expect(page.getByText("Profile saved ✨")).toBeVisible();
+    await expect(page.getByText("Saved.")).toBeVisible();
     const [row] = await sql(`select last_name from public.profiles where id = $1`, [USERS[6].id]);
     expect(row.last_name).toBe("Rossi-E2E");
+    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+    // New accounts arrive with a welcome.
+    await page.goto("/profile?welcome=1");
+    await expect(page.getByRole("heading", { name: "Welcome in." })).toBeVisible();
   });
 
   test("posting a photo gets Gemini captions", async ({ page, context }) => {
@@ -374,9 +451,10 @@ test.describe("signed in", () => {
       const post = "c0000000-0000-4000-8000-000000000006";
       await page.goto(`/g/${post}`);
       const text = `quota-proof caption ${Date.now()}`;
-      await page.getByPlaceholder("your caption goes here…").fill(text);
-      await page.getByRole("button", { name: "Post", exact: true }).click();
-      await expect(page.getByText(/you're in the ring/)).toBeVisible();
+      await page.getByRole("button", { name: "Write yours" }).click();
+      await page.getByRole("textbox", { name: "Your caption" }).fill(text);
+      await page.getByRole("button", { name: /Add my caption/ }).click();
+      await expect(page.locator("li", { hasText: text }).getByText("yours")).toBeVisible();
       const [target] = await sql<{ text: string }>(
         `select c.text from public.captions c where c.generation_id = $1 and c.user_id <> $2
            and not exists (select 1 from public.caption_votes v where v.caption_id = c.id and v.user_id = $2) limit 1`,
@@ -385,7 +463,10 @@ test.describe("signed in", () => {
       const row = page.locator("li").filter({ hasText: target.text });
       await row.getByRole("button", { name: "Upvote" }).click();
       await expect(row.getByRole("button", { name: "Upvote" })).toHaveAttribute("aria-pressed", "true");
-      for (const path of ["/", "/challenge", "/surprise", "/me"]) expect((await page.goto(path))?.status(), path).toBe(200);
+      for (const path of ["/", "/explore", "/results", "/play", "/you"]) {
+        await page.goto(path);
+        await expect(page.locator("main").first()).toBeVisible();
+      }
     } finally {
       await gemini("ok");
     }
@@ -491,10 +572,12 @@ test.describe("signed in", () => {
   test("posting from today's Daily Drop photo", async ({ page, context }) => {
     test.skip(realGemini && !process.env.GEMINI_API_KEY, "GEMINI_API_KEY not set");
     await signIn(context, USERS[8]);
-    await page.goto("/challenge");
-    await page.getByRole("link", { name: "✨ Meme today's drop" }).click();
+    await page.goto("/results");
+    await page.getByRole("button", { name: /Show me/ }).click();
+    await page.getByRole("link", { name: "make one with today's photo" }).click();
     await expect(page).toHaveURL(/\/create\?image=/);
-    await expect(page.getByRole("radio", { name: "Low Steps, first snow (today's drop)" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator('input[name="library_image"]')).toHaveValue("f0000000-0000-4000-8000-000000000001");
+    await expect(page.getByText(/today's photo$/)).toBeVisible();
     await studio(page);
     await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}\?new=1$/, { timeout: 70_000 });
     const id = page.url().match(/g\/([0-9a-f-]{36})/)![1];
@@ -506,8 +589,9 @@ test.describe("signed in", () => {
   test("no horizontal scrolling on a phone", async ({ page, context }) => {
     await signIn(context, MAYA);
     await page.setViewportSize({ width: 375, height: 800 });
-    for (const path of ["/", "/play", "/feed", "/feed?view=wall", "/challenge", "/create", "/me", "/me?tab=captions", "/profile", "/surprise", "/surprise?mode=fresh", "/login", "/g/c0000000-0000-4000-8000-000000000004"]) {
+    for (const path of ["/", "/?start=choose", "/play", "/play?mode=guess", "/play?mode=turn", "/explore", "/results", "/create", "/create?surprise=1", "/you", "/you?s=memes", "/you?s=captions", "/you?s=achievements", "/you?s=account", "/login", "/g/c0000000-0000-4000-8000-000000000004"]) {
       await page.goto(path);
+      await page.waitForLoadState("networkidle");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow, path).toBeLessThanOrEqual(0);
     }
@@ -539,5 +623,36 @@ test.describe("play", () => {
     await page.getByRole("link", { name: /Again/ }).click();
     await expect(page).toHaveURL(/\/play\?seen=/);
     await expect(page.locator("button[aria-pressed]").first()).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
+test.describe("accessibility basics", () => {
+  test("the opening works with the keyboard alone", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /Let's go/ }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("link", { name: /^Play/ })).toBeVisible();
+    await page.getByRole("link", { name: /^Play/ }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/play/);
+  });
+
+  test("every screen has one main heading and no unlabeled controls", async ({ page, context }) => {
+    await signIn(context, MAYA);
+    for (const path of ["/?start=choose", "/play", "/play?mode=guess", "/play?mode=turn", "/explore", "/results", "/create", "/you", "/you?s=memes", "/you?s=captions", "/you?s=achievements", "/you?s=account"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      const report = await page.evaluate(() => {
+        const visible = (el: Element) => !!(el as HTMLElement).offsetParent || getComputedStyle(el).position === "fixed";
+        const h1s = [...document.querySelectorAll("h1")].filter(visible).length;
+        const unlabeled = [...document.querySelectorAll("button, a[href]")]
+          .filter(visible)
+          .filter((el) => !(el.getAttribute("aria-label") || (el.textContent ?? "").trim() || el.querySelector("img[alt]:not([alt=''])")))
+          .map((el) => el.outerHTML.slice(0, 80));
+        return { h1s, unlabeled };
+      });
+      expect(report.unlabeled, path).toEqual([]);
+      expect(report.h1s, path).toBeLessThanOrEqual(1);
+    }
   });
 });
