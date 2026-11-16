@@ -43,13 +43,13 @@ async function signIn(context: BrowserContext, user: { id: string; email: string
 }
 
 test.describe("signed out", () => {
-  test("the entrance: the sign lights up, ENTER opens the doors, then the Studio or the Arena", async ({ page }) => {
+  test("the entrance: CAPTION WARS, ENTER THE ARENA, the gloves, then the Studio or the Arena", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("morningside.");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("memes after dark.");
-    await expect(page.getByText("The club is open")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Caption");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Wars");
+    await expect(page.getByText("May the funniest caption win.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Places" })).toHaveCount(0);
-    await page.getByRole("button", { name: /Enter/ }).click();
+    await page.getByRole("button", { name: /Enter the arena/i }).click();
     await expect(page.getByRole("link", { name: /The Studio/ })).toHaveAttribute("href", "/login?next=/create");
     const more = page.getByRole("navigation", { name: "More" });
     await expect(more.getByRole("link", { name: "explore" })).toHaveAttribute("href", "/explore");
@@ -698,6 +698,48 @@ test.describe("the world reacts", () => {
     expect(await studio.locator("xpath=..").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--ry"))).toBe("");
     await page.getByRole("link", { name: /The Arena/ }).click();
     await expect(page.getByRole("heading", { name: /Which one.s funnier/ })).toBeVisible();
+    await context.close();
+  });
+});
+
+test.describe("caption wars entrance", () => {
+  test("one click, one entrance: double-clicking can't start it twice, and the arena works afterwards", async ({ page }) => {
+    await page.goto("/");
+    const enter = page.getByRole("button", { name: /Enter the arena/i });
+    await enter.click();
+    // A second click during the animation does nothing (the button is disabled).
+    await expect(enter).toBeDisabled();
+    await expect(page.locator(".entrance")).toHaveCount(1);
+    await expect(page.locator(".entrance .entrance-glove")).toHaveCount(2);
+    // The gloves clear and the arena is underneath, usable.
+    await expect(page.locator(".entrance")).toHaveCount(0, { timeout: 5000 });
+    await expect(page.getByRole("link", { name: /The Studio/ })).toBeVisible();
+    await page.getByRole("link", { name: /The Arena/ }).click();
+    await expect(page).toHaveURL(/\/play/);
+  });
+
+  test("the gloves completely cover the screen before the arena is revealed (phone)", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await context.newPage();
+    await page.clock.install();
+    await page.goto("/");
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 50);
+    await page.getByRole("button", { name: /Enter the arena/i }).click();
+    // Seek the CSS animations to the covered moment (1.8 s).
+    await page.evaluate(() => {
+      for (const a of document.getAnimations()) {
+        a.pause();
+        a.currentTime = Math.max(0, 1800 - Number(a.effect?.getTiming().delay ?? 0));
+      }
+    });
+    // The two halves (each solid leather by now) span the whole viewport.
+    const covered = await page.evaluate(() => {
+      const halves = [...document.querySelectorAll(".entrance-half")] as HTMLElement[];
+      const [l, r] = halves.map((h) => h.getBoundingClientRect());
+      const solid = halves.every((h) => getComputedStyle(h, "::before").opacity === "1");
+      return solid && l.left <= 0 && r.right >= innerWidth && l.right >= r.left && l.top <= 0 && l.bottom >= innerHeight && r.top <= 0 && r.bottom >= innerHeight;
+    });
+    expect(covered).toBe(true);
     await context.close();
   });
 });

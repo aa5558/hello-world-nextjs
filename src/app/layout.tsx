@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Geist, Neonderthaw, Tilt_Neon } from "next/font/google";
+import { Geist, Neonderthaw, Tilt_Neon, Unbounded } from "next/font/google";
 import { Menu } from "@/app/components/Menu";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
@@ -24,8 +24,15 @@ const tiltNeon = Tilt_Neon({
   axes: ["XROT", "YROT"],
 });
 
+// Heavy arcade lettering for the CAPTION WARS title.
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
+  subsets: ["latin"],
+  weight: "800",
+});
+
 export const metadata: Metadata = {
-  title: "Morningside · memes after dark",
+  title: "Caption Wars · Morningside Memes",
   description:
     "Make something funny. Turn a campus moment into a meme, let the AI write captions, then play: which one's funnier?",
 };
@@ -43,7 +50,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${neonderthaw.variable} ${tiltNeon.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${neonderthaw.variable} ${tiltNeon.variable} ${unbounded.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <Suspense fallback={null}>

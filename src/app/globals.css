@@ -768,6 +768,328 @@ body::after {
   box-shadow: 0 0 16px rgba(212, 135, 79, 0.6);
 }
 
+/* ---- CAPTION WARS: the entrance --------------------------------------- */
+
+/* The title: heavy, slanted arcade lettering with a white-hot core. */
+.fight {
+  --glow: 255, 60, 172;
+  font-family: var(--font-unbounded), system-ui, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+  color: #fff;
+  transform: skewX(-8deg);
+  text-shadow:
+    0 0 1px #fff,
+    0 0 6px rgba(var(--glow), 1),
+    0 0 18px rgba(var(--glow), 0.8),
+    0 0 48px rgba(var(--glow), 0.55),
+    0 6px 0 rgba(var(--glow), 0.25);
+}
+
+/* A synthwave arena floor receding into the dark. */
+.arena-floor {
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: -10%;
+  height: 55%;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 60, 172, 0.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45, 226, 255, 0.35) 1px, transparent 1px);
+  background-size: 60px 60px;
+  transform: perspective(500px) rotateX(62deg);
+  transform-origin: top;
+  mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 60%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 60%, transparent);
+}
+
+/* The title card steps back as the gloves arrive. */
+.title-recede {
+  animation: title-recede 700ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes title-recede {
+  to {
+    opacity: 0.15;
+    transform: scale(0.92);
+    filter: blur(4px);
+  }
+}
+
+/* The overlay that runs the 2.6 s entrance. */
+.entrance {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  perspective: 900px;
+  animation: entrance-shake 2600ms linear both;
+}
+.entrance-half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  overflow: hidden;
+}
+.entrance-half.left {
+  left: 0;
+  animation: half-left 2600ms both;
+}
+.entrance-half.right {
+  right: 0;
+  animation: half-right 2600ms both;
+}
+.entrance-glove {
+  position: absolute;
+  top: 50%;
+  width: min(46vw, 460px);
+  will-change: transform, filter;
+}
+.entrance-half.left .entrance-glove {
+  right: 0;
+  transform-origin: 94% 52%;
+  animation: glove-left 2600ms both;
+  filter: drop-shadow(0 0 24px rgba(255, 60, 172, 0.75)) drop-shadow(0 30px 40px rgba(0, 0, 0, 0.8));
+}
+.entrance-half.right .entrance-glove {
+  left: 0;
+  transform-origin: 6% 52%;
+  animation: glove-right 2600ms both;
+  filter: drop-shadow(0 0 24px rgba(45, 226, 255, 0.75)) drop-shadow(0 30px 40px rgba(0, 0, 0, 0.8));
+}
+/* When the gloves fill the screen, each half becomes solid leather, so
+   coverage is complete on any screen shape. */
+.entrance-half.left::before,
+.entrance-half.right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+.entrance-half.left::before {
+  background: radial-gradient(120% 90% at 100% 45%, #ff7cc8 0%, #ff3cac 22%, #b0186c 55%, #3d0526 100%);
+  animation: leather 2600ms both;
+}
+.entrance-half.right::before {
+  background: radial-gradient(120% 90% at 0% 45%, #9ff0ff 0%, #2dc3ff 22%, #0f6cb8 55%, #031a40 100%);
+  animation: leather 2600ms both;
+}
+
+@keyframes glove-left {
+  0% {
+    transform: translate(-120vw, -50%) rotateY(32deg) rotateZ(-12deg) scale(0.85);
+    filter: blur(8px) drop-shadow(0 0 24px rgba(255, 60, 172, 0.75));
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  26% {
+    transform: translate(-24vw, -50%) rotateY(20deg) rotateZ(-4deg) scale(1);
+    filter: blur(0) drop-shadow(0 0 24px rgba(255, 60, 172, 0.75));
+    animation-timing-function: ease-in-out;
+  }
+  33% {
+    /* wind-up */
+    transform: translate(-30vw, -52%) rotateY(26deg) rotateZ(-8deg) scale(0.96);
+    animation-timing-function: cubic-bezier(0.7, 0, 1, 0.6);
+  }
+  37% {
+    /* impact */
+    transform: translate(1.5vw, -50%) rotateY(0deg) rotateZ(0deg) scale(1.06);
+    filter: blur(0) drop-shadow(0 0 60px rgba(255, 60, 172, 1));
+    animation-timing-function: ease-out;
+  }
+  42% {
+    transform: translate(-1.5vw, -50%) rotateY(4deg) scale(1);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.35);
+  }
+  70% {
+    /* flying at the camera */
+    transform: translate(0, -50%) rotateY(0deg) scale(12);
+    filter: blur(2px) drop-shadow(0 0 24px rgba(255, 60, 172, 0.75));
+  }
+  100% {
+    transform: translate(0, -50%) scale(12);
+    filter: blur(2px);
+  }
+}
+@keyframes glove-right {
+  0% {
+    transform: translate(120vw, -50%) rotateY(-32deg) rotateZ(12deg) scale(0.85);
+    filter: blur(8px) drop-shadow(0 0 24px rgba(45, 226, 255, 0.75));
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  26% {
+    transform: translate(24vw, -50%) rotateY(-20deg) rotateZ(4deg) scale(1);
+    filter: blur(0) drop-shadow(0 0 24px rgba(45, 226, 255, 0.75));
+    animation-timing-function: ease-in-out;
+  }
+  33% {
+    transform: translate(30vw, -48%) rotateY(-26deg) rotateZ(8deg) scale(0.96);
+    animation-timing-function: cubic-bezier(0.7, 0, 1, 0.6);
+  }
+  37% {
+    transform: translate(-1.5vw, -50%) rotateY(0deg) rotateZ(0deg) scale(1.06);
+    filter: blur(0) drop-shadow(0 0 60px rgba(45, 226, 255, 1));
+    animation-timing-function: ease-out;
+  }
+  42% {
+    transform: translate(1.5vw, -50%) rotateY(-4deg) scale(1);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.35);
+  }
+  70% {
+    transform: translate(0, -50%) rotateY(0deg) scale(12);
+    filter: blur(2px) drop-shadow(0 0 24px rgba(45, 226, 255, 0.75));
+  }
+  100% {
+    transform: translate(0, -50%) scale(12);
+    filter: blur(2px);
+  }
+}
+@keyframes leather {
+  0%,
+  56% {
+    opacity: 0;
+  }
+  68%,
+  100% {
+    opacity: 1;
+  }
+}
+/* The covered screen opens like two doors. */
+@keyframes half-left {
+  0%,
+  72% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.75, 0, 0.25, 1);
+  }
+  100% {
+    transform: translateX(-104%);
+  }
+}
+@keyframes half-right {
+  0%,
+  72% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.75, 0, 0.25, 1);
+  }
+  100% {
+    transform: translateX(104%);
+  }
+}
+@keyframes entrance-shake {
+  0%,
+  36.5% {
+    transform: none;
+  }
+  37.5% {
+    transform: translate(-14px, 8px) rotate(-0.6deg);
+  }
+  38.5% {
+    transform: translate(12px, -10px) rotate(0.5deg);
+  }
+  39.5% {
+    transform: translate(-9px, -6px);
+  }
+  40.5% {
+    transform: translate(7px, 5px);
+  }
+  42% {
+    transform: translate(-3px, 2px);
+  }
+  43.5%,
+  100% {
+    transform: none;
+  }
+}
+
+/* Impact: a white-hot flash, a shockwave ring, and sparks. */
+.impact-flash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 90vmax;
+  height: 90vmax;
+  margin: -45vmax 0 0 -45vmax;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #ffffff 0%, rgba(255, 210, 240, 0.95) 8%, rgba(255, 60, 172, 0.55) 22%, rgba(45, 226, 255, 0.35) 38%, transparent 62%);
+  mix-blend-mode: screen;
+  animation: impact-flash 2600ms both;
+}
+@keyframes impact-flash {
+  0%,
+  36.6% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  37.2% {
+    opacity: 1;
+    transform: scale(0.55);
+  }
+  47% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.impact-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40vmin;
+  height: 40vmin;
+  margin: -20vmin 0 0 -20vmin;
+  border-radius: 9999px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 30px rgba(255, 60, 172, 0.9),
+    inset 0 0 30px rgba(45, 226, 255, 0.9);
+  animation: impact-ring 2600ms both;
+}
+@keyframes impact-ring {
+  0%,
+  36.8% {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+  37.4% {
+    opacity: 1;
+  }
+  52% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.impact-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 9999px;
+  opacity: 0;
+  /* forwards only: invisible while waiting for the impact. */
+  animation: impact-spark 900ms cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+  animation-delay: 962ms;
+}
+@keyframes impact-spark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.3);
+  }
+}
+
 /* Mirror bulbs in the dressing room. */
 .bulb {
   width: 9px;

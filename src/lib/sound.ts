@@ -4,7 +4,7 @@
 // in the top bar stores the choice in this browser only. Nothing ever
 // autoplays: a cue only plays right after the user does something.
 
-export type Cue = "enter" | "select" | "vote" | "publish" | "reveal";
+export type Cue = "enter" | "select" | "vote" | "publish" | "reveal" | "punch";
 
 const KEY = "mm-sound";
 let ctx: AudioContext | null = null;
@@ -40,7 +40,38 @@ function tone(freq: number, start: number, length: number, type: OscillatorType,
   osc.stop(ctx.currentTime + start + length + 0.05);
 }
 
-const CUES: Record<Cue, [number, number, number, OscillatorType, number][]> = {
+// A punch: a short burst of filtered noise (the leather slap) over a low
+// sine thump that drops in pitch (the body of the hit).
+function punch() {
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
+  const data = noise.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3);
+  const src = ctx.createBufferSource();
+  src.buffer = noise;
+  const bp = ctx.createBiquadFilter();
+  bp.type = "lowpass";
+  bp.frequency.value = 1800;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.35, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+  src.connect(bp).connect(ng).connect(ctx.destination);
+  src.start(t);
+
+  const osc = ctx.createOscillator();
+  const og = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(140, t);
+  osc.frequency.exponentialRampToValueAtTime(42, t + 0.3);
+  og.gain.setValueAtTime(0.5, t);
+  og.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  osc.connect(og).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.4);
+}
+
+const CUES: Record<Exclude<Cue, "punch">, [number, number, number, OscillatorType, number][]> = {
   // A neon hum and a door: low buzz, then a soft rising pair.
   enter: [
     [110, 0, 0.5, "sawtooth", 0.025],
@@ -65,12 +96,25 @@ const CUES: Record<Cue, [number, number, number, OscillatorType, number][]> = {
   ],
 };
 
+// Call from a click when a cue will play a moment later (browsers only
+// allow audio to start from a user gesture).
+export function primeAudio() {
+  if (typeof window === "undefined" || !soundOn()) return;
+  try {
+    ctx ??= new AudioContext();
+    if (ctx.state === "suspended") void ctx.resume();
+  } catch {
+    // No audio available.
+  }
+}
+
 export function play(cue: Cue) {
   if (typeof window === "undefined" || !soundOn()) return;
   try {
     ctx ??= new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();
-    for (const [f, s, l, t, g] of CUES[cue]) tone(f, s, l, t, g);
+    if (cue === "punch") punch();
+    else for (const [f, s, l, t, g] of CUES[cue]) tone(f, s, l, t, g);
   } catch {
     // No audio available: silent.
   }
