@@ -17,39 +17,41 @@ export default async function MoviesPage() {
 
   if (error) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-4 pt-20">
-        <p role="alert" className="rounded-[22px] bg-down-soft p-4 text-sm text-down-ink">Error loading movies: {error.message}</p>
+      <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-2xl flex-col items-center justify-center px-5 text-center">
+        <p role="alert" className="text-down-ink">Error loading movies: {error.message}</p>
       </main>
     );
   }
 
   const movies = (data ?? []) as Movie[];
 
+  // The Week 3 Supabase list, in the same quiet language as the rest.
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 pt-20">
-      <p className="eyebrow">from the archive</p>
-      <h1 className="display mb-6 mt-1 text-5xl">Movies</h1>
-      <div className="card overflow-hidden">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead className="bg-powder/60 text-xs text-ink-2">
+    <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-2xl flex-col items-center px-5 pb-16 pt-24 text-center sm:px-8">
+      <h1 className="word text-6xl sm:text-8xl">Movies.</h1>
+      <p className="mt-3 text-sm text-ink-3">from the archive · straight from Supabase</p>
+      {movies.length === 0 ? (
+        <p className="mt-10 text-ink-2">No movies found.</p>
+      ) : (
+        <table className="mt-10 w-full border-collapse text-left">
+          <thead className="text-xs text-ink-3">
             <tr>
-              <th className="px-5 py-3 font-semibold">Title</th>
-              <th className="px-3 py-3 font-semibold">Year</th>
-              <th className="px-5 py-3 font-semibold">Rating</th>
+              <th className="py-3 font-normal">Title</th>
+              <th className="px-3 py-3 font-normal">Year</th>
+              <th className="py-3 text-right font-normal">Rating</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-line">
-            {movies.map((movie) => (
-              <tr key={movie.id}>
-                <td className="px-5 py-3 font-medium">{movie.title}</td>
-                <td className="px-3 py-3 text-ink-2">{movie.year}</td>
-                <td className="px-5 py-3 text-ink-2">{movie.rating}</td>
+          <tbody>
+            {movies.map((movie, i) => (
+              <tr key={movie.id} className="rise border-t border-line" style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}>
+                <td className="py-4 text-lg text-ink">{movie.title}</td>
+                <td className="px-3 py-4 text-ink-2">{movie.year}</td>
+                <td className="py-4 text-right tabular-nums text-ink-2">{movie.rating}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        {movies.length === 0 && <p className="p-5 text-sm text-ink-2">No movies found.</p>}
-      </div>
+      )}
     </main>
   );
 }
