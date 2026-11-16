@@ -18,7 +18,7 @@ function applyVote(state: VoteState, vote: -1 | 0 | 1): VoteState {
 }
 
 const CAPSULE =
-  "flex w-11 shrink-0 flex-col items-center rounded-full bg-white py-1 shadow-[inset_0_0_0_1px_rgba(22,38,61,0.08)]";
+  "flex w-11 shrink-0 flex-col items-center rounded-full bg-white py-1 shadow-[inset_0_0_0_1px_rgba(22,21,20,0.08)]";
 const ARROW =
   "flex h-8 w-8 items-center justify-center rounded-full text-[13px] transition active:scale-75 disabled:cursor-not-allowed";
 

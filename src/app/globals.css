@@ -4,50 +4,52 @@
    is never set. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Morningside Memes: warm white, near-black type, one accent (a warm
+   "punchline" red-orange) and one cool counterpart for the AI. Light-only. */
 :root {
-  --background: #f8fcff;
-  --foreground: #16263d;
+  --background: #faf8f5;
+  --foreground: #161514;
   --surface: #ffffff;
 }
 
 @theme inline {
-  /* Brand palette */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
-  --color-ice: #b8dcff;
-  --color-powder: #e3f2ff;
-  --color-sky: #69b5ff;
-  --color-ink: #16263d;
-  --color-ink-2: #4a5a72;
-  --color-ink-3: #7b889c;
-  --color-line: rgba(22, 38, 61, 0.08);
-  --color-sky-deep: #1f6fd1;
+  /* Older token names, remapped so every existing screen follows. */
+  --color-ice: #ece8e2;
+  --color-powder: #f3f0eb;
+  --color-sky: #ff5b2e;
+  --color-sky-deep: #d9441b;
+  --color-ink: #161514;
+  --color-ink-2: #5e5b57;
+  --color-ink-3: #9a968f;
+  --color-line: rgba(22, 21, 20, 0.08);
+  --color-punch: #ff5b2e;
+  --color-punch-ink: #c63b14;
 
-  /* Humans vs. Gemini, and votes. Chart-validated pairs. */
-  --color-human: #3d8ff0;
-  --color-human-ink: #1f6fd1;
-  --color-human-soft: #e3f2ff;
-  --color-ai: #e5539a;
-  --color-ai-ink: #b42d72;
-  --color-ai-soft: #ffe8f3;
-  --color-down: #ec5b37;
-  --color-down-ink: #c2401f;
-  --color-down-soft: #ffede6;
-  --color-butter: #fff1c2;
-  --color-butter-ink: #7a5600;
+  --color-human: #e8542b;
+  --color-human-ink: #b93c17;
+  --color-human-soft: #fdebe4;
+  --color-ai: #4060e0;
+  --color-ai-ink: #2c47b8;
+  --color-ai-soft: #e8edfc;
+  --color-down: #8a8580;
+  --color-down-ink: #b3261e;
+  --color-down-soft: #fbe9e7;
+  --color-butter: #f6efe0;
+  --color-butter-ink: #6f5512;
 
-  /* Kept so older class names still resolve to the new brand. */
-  --color-navy: #16263d;
-  --color-columbia: #b8dcff;
+  --color-navy: #161514;
+  --color-columbia: #ece8e2;
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-bricolage);
+  --font-display: var(--font-instrument);
   --font-serif: var(--font-instrument);
 
-  --animate-fade-up: fade-up 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  --animate-pop: pop 320ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  --animate-fade-up: fade-up 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-pop: pop 320ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
   --animate-float: float 7s ease-in-out infinite;
   --animate-pulse-dot: pulse-dot 1.8s ease-in-out infinite;
   --animate-roll: roll 700ms cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
@@ -64,30 +66,25 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Two soft icy glows behind everything: atmosphere, not a gradient. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(38rem 26rem at 8% -6%, rgba(184, 220, 255, 0.55), transparent 70%),
-    radial-gradient(34rem 24rem at 100% 12%, rgba(227, 242, 255, 0.9), transparent 70%);
-}
-
 ::selection {
-  background: #b8dcff;
-  color: #16263d;
+  background: #ffd9cc;
+  color: #161514;
 }
 
 @layer components {
   .display {
-    font-family: var(--font-bricolage), system-ui, sans-serif;
-    font-weight: 750;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-weight: 650;
     letter-spacing: -0.035em;
-    line-height: 0.95;
-    font-variation-settings: "wdth" 92;
+    line-height: 1;
+  }
+
+  /* The one big word on a screen. */
+  .word {
+    font-family: var(--font-instrument), Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
   }
 
   /* One editorial word per headline, in an italic serif. */
@@ -108,11 +105,11 @@ body::before {
 
   .card {
     background: #fff;
-    border: 1px solid rgba(22, 38, 61, 0.06);
+    border: 1px solid rgba(22, 21, 20, 0.06);
     border-radius: 28px;
     box-shadow:
-      0 1px 2px rgba(22, 38, 61, 0.04),
-      0 18px 40px -24px rgba(22, 38, 61, 0.18);
+      0 1px 2px rgba(22, 21, 20, 0.04),
+      0 18px 40px -24px rgba(22, 21, 20, 0.18);
   }
 
   .glass {
@@ -120,7 +117,7 @@ body::before {
     border: 1px solid rgba(255, 255, 255, 0.8);
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 12px 32px -18px rgba(22, 38, 61, 0.28);
+      0 12px 32px -18px rgba(22, 21, 20, 0.28);
     backdrop-filter: blur(18px) saturate(1.4);
     -webkit-backdrop-filter: blur(18px) saturate(1.4);
   }
@@ -153,7 +150,7 @@ body::before {
     opacity: 0.45;
   }
   .btn:focus-visible {
-    outline: 3px solid #69b5ff;
+    outline: 3px solid #ff5b2e;
     outline-offset: 2px;
   }
   .btn-sm {
@@ -167,32 +164,32 @@ body::before {
 
   .btn-primary {
     color: #fff;
-    background: linear-gradient(180deg, #2b3f5e 0%, #16263d 100%);
+    background: linear-gradient(180deg, #2e2c2a 0%, #161514 100%);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.22),
-      0 10px 24px -12px rgba(22, 38, 61, 0.7);
+      0 10px 24px -12px rgba(22, 21, 20, 0.7);
   }
   .btn-primary:hover:not(:disabled) {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.22),
-      0 14px 30px -12px rgba(22, 38, 61, 0.75);
+      0 14px 30px -12px rgba(22, 21, 20, 0.75);
   }
 
   .btn-ice {
-    color: #16263d;
-    background: linear-gradient(180deg, #d6ecff 0%, #b8dcff 100%);
+    color: #161514;
+    background: linear-gradient(180deg, #f3f0eb 0%, #ece8e2 100%);
     box-shadow:
       inset 0 1px 0 #fff,
-      inset 0 -1px 0 rgba(22, 38, 61, 0.06),
-      0 10px 24px -12px rgba(105, 181, 255, 0.95);
+      inset 0 -1px 0 rgba(22, 21, 20, 0.06),
+      0 10px 24px -12px rgba(255, 91, 46, 0.95);
   }
 
   .btn-ghost {
-    color: #16263d;
+    color: #161514;
     background: rgba(255, 255, 255, 0.85);
     box-shadow:
-      inset 0 0 0 1px rgba(22, 38, 61, 0.1),
-      0 6px 16px -12px rgba(22, 38, 61, 0.3);
+      inset 0 0 0 1px rgba(22, 21, 20, 0.1),
+      0 6px 16px -12px rgba(22, 21, 20, 0.3);
   }
   .btn-ghost:hover:not(:disabled) {
     background: #fff;
@@ -200,17 +197,17 @@ body::before {
 
   .btn-human {
     color: #fff;
-    background: linear-gradient(180deg, #5aa3f5 0%, #2f80e4 100%);
+    background: linear-gradient(180deg, #f0663f 0%, #d9441b 100%);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      0 10px 24px -12px rgba(61, 143, 240, 0.9);
+      0 10px 24px -12px rgba(232, 84, 43, 0.9);
   }
   .btn-ai {
     color: #fff;
-    background: linear-gradient(180deg, #ef72ad 0%, #d9468c 100%);
+    background: linear-gradient(180deg, #5876ea 0%, #3552cc 100%);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      0 10px 24px -12px rgba(229, 83, 154, 0.9);
+      0 10px 24px -12px rgba(64, 96, 224, 0.9);
   }
 
   .chip {
@@ -227,39 +224,39 @@ body::before {
   .field {
     width: 100%;
     border-radius: 1rem;
-    border: 1px solid rgba(22, 38, 61, 0.12);
+    border: 1px solid rgba(22, 21, 20, 0.12);
     background: #fff;
     padding: 0.8rem 1rem;
     font-size: 0.9375rem;
-    color: #16263d;
+    color: #161514;
     outline: none;
     transition:
       border-color 150ms ease,
       box-shadow 150ms ease;
   }
   .field::placeholder {
-    color: #7b889c;
+    color: #9a968f;
   }
   .field:focus {
-    border-color: #69b5ff;
-    box-shadow: 0 0 0 4px rgba(105, 181, 255, 0.25);
+    border-color: #ff5b2e;
+    box-shadow: 0 0 0 4px rgba(255, 91, 46, 0.25);
   }
 
   /* The glossy 3D bubble used for the logo and the Post button. */
   .orb {
     background:
       radial-gradient(circle at 32% 26%, #ffffff 0%, rgba(255, 255, 255, 0) 38%),
-      radial-gradient(circle at 70% 80%, #69b5ff 0%, rgba(105, 181, 255, 0) 60%),
-      linear-gradient(160deg, #d9edff 0%, #a9d3ff 100%);
+      radial-gradient(circle at 70% 80%, #ff5b2e 0%, rgba(255, 91, 46, 0) 60%),
+      linear-gradient(160deg, #fff1ea 0%, #ffd2c2 100%);
     box-shadow:
-      inset 0 -3px 6px rgba(31, 111, 209, 0.25),
+      inset 0 -3px 6px rgba(198, 59, 20, 0.25),
       inset 0 2px 2px rgba(255, 255, 255, 0.9),
-      0 8px 18px -8px rgba(105, 181, 255, 0.95);
+      0 8px 18px -8px rgba(255, 91, 46, 0.95);
   }
 
   .skeleton {
     border-radius: 1rem;
-    background: linear-gradient(90deg, #e9f4ff 0%, #f6fbff 50%, #e9f4ff 100%);
+    background: linear-gradient(90deg, #f1eee9 0%, #faf8f5 50%, #f1eee9 100%);
     background-size: 200% 100%;
     animation: shimmer 1.4s linear infinite;
   }
@@ -272,8 +269,8 @@ body::before {
   .lift:hover {
     transform: translateY(-3px);
     box-shadow:
-      0 1px 2px rgba(22, 38, 61, 0.04),
-      0 24px 48px -24px rgba(22, 38, 61, 0.28);
+      0 1px 2px rgba(22, 21, 20, 0.04),
+      0 24px 48px -24px rgba(22, 21, 20, 0.28);
   }
 }
 
@@ -340,10 +337,10 @@ body::before {
 @keyframes pulse-dot {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(105, 181, 255, 0.7);
+    box-shadow: 0 0 0 0 rgba(255, 91, 46, 0.7);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(105, 181, 255, 0);
+    box-shadow: 0 0 0 6px rgba(255, 91, 46, 0);
   }
 }
 
@@ -376,6 +373,128 @@ body::before {
 @keyframes scan {
   to {
     top: 100%;
+  }
+}
+
+/* Text that rises into place, one line after another. */
+.rise {
+  animation: rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* A screen arriving. */
+.screen-in {
+  animation: screen-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The chosen caption: lifts and settles. */
+.chosen {
+  animation: chosen 460ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+@keyframes chosen {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.035);
+  }
+  100% {
+    transform: scale(1.015);
+  }
+}
+
+/* The "AI is writing" breath on the photo. */
+.breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: saturate(1);
+  }
+  50% {
+    transform: scale(1.02);
+    filter: saturate(1.15);
+  }
+}
+
+/* Three dots typing. */
+.dots i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 3px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: dot 1.2s ease-in-out infinite;
+}
+.dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: none;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+/* A few sparkles that burst once (new AI captions, a vote, a publish). */
+.sparkle-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.sparkle-burst i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #ff5b2e;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  opacity: 0;
+  animation: sparkle 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes sparkle {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3) rotate(0);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(1.1) rotate(90deg);
   }
 }
 

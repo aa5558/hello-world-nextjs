@@ -33,7 +33,7 @@ export function useConfirm() {
         event.preventDefault();
         close(false);
       }}
-      className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-[28px] border-0 bg-white p-0 text-ink shadow-[0_30px_80px_-20px_rgba(22,38,61,0.45)] backdrop:bg-ink/25 backdrop:backdrop-blur-sm"
+      className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-[28px] border-0 bg-white p-0 text-ink shadow-[0_30px_80px_-20px_rgba(22,21,20,0.45)] backdrop:bg-ink/25 backdrop:backdrop-blur-sm"
     >
       {options && (
         <div className="flex flex-col gap-3 p-6">

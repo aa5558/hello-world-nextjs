@@ -34,7 +34,7 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
   const isIncomplete = !profile?.first_name || !profile?.last_name;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pt-8 sm:px-6 sm:pt-12">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-5 pb-16 pt-20 sm:px-8 sm:pt-24">
       <div className="flex items-end justify-between gap-4">
         <PageHero
           eyebrow="profile"

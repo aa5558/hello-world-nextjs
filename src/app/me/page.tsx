@@ -63,7 +63,7 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
   const best = [...myCaptions].sort((a, b) => b.score - a.score)[0];
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pt-8 sm:px-6 sm:pt-12">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-5 pb-16 pt-20 sm:px-8 sm:pt-24">
       <section className="animate-fade-up relative overflow-hidden rounded-[36px] bg-ink p-6 text-white sm:p-10">
         <span aria-hidden className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-sky/40 blur-3xl" />
         <span aria-hidden className="absolute -bottom-24 left-10 h-56 w-56 rounded-full bg-ai/25 blur-3xl" />
@@ -103,7 +103,7 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
             <li
               key={a.key}
               className={`flex flex-col gap-2 rounded-[22px] p-3 transition ${
-                a.unlocked ? "bg-white shadow-[0_14px_30px_-20px_rgba(22,38,61,0.4)] ring-1 ring-line" : "bg-powder/50 text-ink-3"
+                a.unlocked ? "bg-white shadow-[0_14px_30px_-20px_rgba(22,21,20,0.4)] ring-1 ring-line" : "bg-powder/50 text-ink-3"
               }`}
             >
               <span aria-hidden className={`flex h-10 w-10 items-center justify-center rounded-[14px] text-xl ${a.unlocked ? "orb" : "bg-white/70 grayscale"}`}>
@@ -150,7 +150,7 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
             aria-current={tab === item.key ? "page" : undefined}
             className={`rounded-full px-4 py-2 font-medium transition ${
               tab === item.key
-                ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(22,38,61,0.18)]"
+                ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(22,21,20,0.18)]"
                 : "text-ink-2 hover:text-ink"
             }`}
           >

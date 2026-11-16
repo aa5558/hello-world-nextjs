@@ -42,7 +42,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
   const gated = rules.restricted && rules.domains.length > 0;
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
+    <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-5 pb-10 pt-20 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
       <section className="animate-fade-up flex flex-col gap-6">
         <p className="eyebrow">sign in</p>
         <h1 className="display text-5xl text-ink sm:text-7xl">

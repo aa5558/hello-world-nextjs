@@ -1,13 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import {
-  IMAGE_PROMPT_IDEAS,
-  IMAGE_PROMPT_MAX,
-  VIBES,
-  VIBE_EMOJI,
-  type Vibe,
-} from "@/lib/captions";
+import { IMAGE_PROMPT_IDEAS, IMAGE_PROMPT_MAX, VIBES, type Vibe } from "@/lib/captions";
 import type { LibraryImage } from "@/lib/library";
 import { createGeneration, type CreateFormState } from "./actions";
 
@@ -22,9 +16,9 @@ const VIBE_TAGLINES: Record<Vibe, string> = {
   newyorker: "Unimpressed. Correct.",
 };
 
-// What the loading screen says while the server runs the prompt chain. The
-// server doesn't stream progress, so these advance on a timer and hold on
-// the last line until the redirect.
+// What the screen says while the server writes and posts. The server
+// doesn't stream progress, so these advance on a timer and hold on the last
+// line until the redirect.
 const COOKING = [
   "Looking very closely at your photo…",
   "Pitching jokes to the writers' room…",
@@ -34,6 +28,12 @@ const COOKING = [
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
+const STEPS = ["moment", "vibe", "context", "punchline"] as const;
+
+// One screen, one question. All steps live in one form and stay mounted
+// (only hidden), so going back never loses the photo or what you typed, and
+// the submission is exactly the same as before: one server action that
+// writes the AI captions and publishes the post together.
 export function CreateForm({
   aiPhotosEnabled,
   dailyDrop,
@@ -55,6 +55,7 @@ export function CreateForm({
     : library;
   const initialLibrary = libraryChoices.find((image) => image.id === initialImageId) ?? null;
 
+  const [step, setStep] = useState(0);
   const [source, setSource] = useState<Source>(initialLibrary ? "library" : "upload");
   const [libraryId, setLibraryId] = useState<string | null>(initialLibrary?.id ?? libraryChoices[0]?.id ?? null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -85,6 +86,10 @@ export function CreateForm({
     };
   }, [pending]);
 
+  useEffect(() => {
+    if (step === 2) contextInput.current?.focus();
+  }, [step]);
+
   function acceptFile(file: File | undefined) {
     setFileError(null);
     if (!file) return setPreview(null);
@@ -97,6 +102,8 @@ export function CreateForm({
       return setPreview(null);
     }
     setPreview(URL.createObjectURL(file));
+    setSource("upload");
+    setStep(1);
   }
 
   const chosenLibrary = libraryChoices.find((image) => image.id === libraryId) ?? null;
@@ -104,286 +111,288 @@ export function CreateForm({
   const ready =
     source === "upload" ? Boolean(preview) : source === "library" ? Boolean(chosenLibrary) : imagePrompt.trim().length >= 3;
 
-  const sources: { value: Source; label: string; hint: string }[] = [
-    { value: "upload", label: "Upload", hint: "your camera roll" },
-    ...(libraryChoices.length ? [{ value: "library" as const, label: "Pick a photo", hint: dailyDrop ? "incl. today's drop" : "from the library" }] : []),
-    ...(aiPhotosEnabled ? [{ value: "ai" as const, label: "Generate", hint: "describe it" }] : []),
-  ];
+  const go = (to: number) => setStep(Math.max(0, Math.min(to, STEPS.length - 1)));
 
   return (
-    <form action={formAction} className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-10">
+    <form action={formAction} className="mx-auto flex min-h-[100svh] w-full max-w-3xl flex-col px-5 pb-10 pt-20 sm:px-8 sm:pt-24">
       <input type="hidden" name="source" value={source} />
       {source === "library" && libraryId && <input type="hidden" name="library_image" value={libraryId} />}
       <input type="hidden" name="vibe" value={vibe} />
       <input type="hidden" name="submission_id" value={submissionId} />
 
-      <div className="flex min-w-0 flex-col gap-8">
-        {/* 01 Photo */}
-        <section aria-labelledby="step-photo" className="flex flex-col gap-4">
-          <StepTitle n="01" id="step-photo" title="The photo" sub="Anything from campus life counts." />
-
-          {sources.length > 1 && (
-            <div role="radiogroup" aria-label="Photo source" className="flex flex-wrap gap-2">
-              {sources.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={source === option.value}
-                  onClick={() => setSource(option.value)}
-                  className={`flex flex-col items-start rounded-[18px] px-4 py-2.5 text-left text-sm transition ${
-                    source === option.value
-                      ? "bg-ink text-white shadow-[0_10px_24px_-14px_rgba(22,38,61,0.9)]"
-                      : "bg-white text-ink ring-1 ring-line hover:ring-sky"
-                  }`}
-                >
-                  <span className="font-semibold">{option.label}</span>
-                  <span className={`text-[11px] ${source === option.value ? "text-white/70" : "text-ink-3"}`}>{option.hint}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Kept mounted (just hidden) so a chosen file survives switching sources. */}
-          <label
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragging(false);
-              const file = e.dataTransfer.files?.[0];
-              if (file && fileInput.current) {
-                const transfer = new DataTransfer();
-                transfer.items.add(file);
-                fileInput.current.files = transfer.files;
-                acceptFile(file);
-              }
-            }}
-            className={`group relative flex min-h-56 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[30px] border-2 border-dashed text-sm transition ${
-              dragging ? "border-sky bg-powder" : "border-ice bg-white/70 hover:border-sky hover:bg-powder/40"
-            } ${source === "upload" ? "" : "hidden"}`}
-          >
-            {preview ? (
-              <span className="flex w-full items-center gap-4 p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="Your selected photo" className="h-28 w-28 rounded-[22px] object-cover" />
-                <span className="flex flex-col gap-1">
-                  <span className="display text-xl text-ink">Looking good.</span>
-                  <span className="text-ink-2">Tap or drop to swap it.</span>
-                </span>
-              </span>
-            ) : (
-              <span className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-                <span className="orb flex h-16 w-16 items-center justify-center rounded-[22px] text-2xl transition-transform duration-300 group-hover:-translate-y-1 group-hover:rotate-6">
-                  📸
-                </span>
-                <span className="display text-2xl text-ink">Drop a photo here</span>
-                <span className="text-ink-2">or tap to choose · PNG, JPEG, WEBP · up to 4MB</span>
-              </span>
-            )}
-            <input
-              ref={fileInput}
-              name="image"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              required={source === "upload"}
-              onChange={(e) => acceptFile(e.target.files?.[0])}
-              className="sr-only"
+      {/* Progress + back */}
+      <div className="flex h-10 items-center justify-between">
+        {step > 0 && !pending ? (
+          <button type="button" onClick={() => go(step - 1)} className="text-sm text-ink-3 transition hover:text-ink">
+            ← back
+          </button>
+        ) : (
+          <span />
+        )}
+        <ol aria-label={`Step ${step + 1} of ${STEPS.length}`} className="flex gap-1.5">
+          {STEPS.map((name, i) => (
+            <li
+              key={name}
+              className={`h-1.5 rounded-full transition-all duration-500 ${i === step ? "w-6 bg-ink" : i < step ? "w-1.5 bg-ink" : "w-1.5 bg-ice"}`}
             />
-          </label>
-          {fileError && source === "upload" && (
-            <p role="alert" className="rounded-[18px] bg-down-soft px-4 py-2.5 text-sm text-down-ink">
-              {fileError}
-            </p>
-          )}
-
-          {source === "library" && (
-            <div role="radiogroup" aria-label="Library photo" className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {libraryChoices.map((image) => {
-                const isDrop = image.id === dailyDrop?.id;
-                return (
-                  <button
-                    key={image.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={libraryId === image.id}
-                    aria-label={`${image.title}${isDrop ? " (today's drop)" : ""}`}
-                    onClick={() => setLibraryId(image.id)}
-                    className={`group relative aspect-square overflow-hidden rounded-[20px] bg-powder transition ${
-                      libraryId === image.id ? "ring-4 ring-sky" : "ring-1 ring-line hover:ring-sky"
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={image.url} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                    {isDrop && <span className="chip absolute left-1.5 top-1.5 bg-butter px-2 py-0.5 text-[10px] text-butter-ink">today&apos;s drop</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {source === "ai" && (
-            <div className="flex flex-col gap-2">
-              <label htmlFor="image_prompt" className="text-sm font-semibold">
-                Describe the photo you want
-              </label>
-              <textarea
-                id="image_prompt"
-                name="image_prompt"
-                value={imagePrompt}
-                onChange={(e) => setImagePrompt(e.target.value)}
-                maxLength={IMAGE_PROMPT_MAX}
-                required
-                rows={3}
-                placeholder="e.g. A raccoon pulling an all-nighter in Butler Library"
-                className="field rounded-[22px]"
-              />
-              <div className="flex flex-wrap gap-1.5">
-                {IMAGE_PROMPT_IDEAS.map((idea) => (
-                  <button key={idea} type="button" onClick={() => setImagePrompt(idea)} className="chip bg-powder text-ink transition hover:bg-ice">
-                    {idea}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* 02 Voice */}
-        <section aria-labelledby="step-voice" className="flex flex-col gap-4">
-          <StepTitle n="02" id="step-voice" title="The voice" sub="Who's the AI pretending to be?" />
-          <div role="radiogroup" aria-labelledby="step-voice" className="grid grid-cols-2 gap-2">
-            {(Object.keys(VIBES) as Vibe[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="radio"
-                aria-checked={vibe === key}
-                onClick={() => setVibe(key)}
-                className={`group flex items-center gap-3 rounded-[22px] p-3 text-left transition ${
-                  vibe === key ? "bg-ice ring-2 ring-sky" : "bg-white ring-1 ring-line hover:ring-sky"
-                }`}
-              >
-                <span
-                  aria-hidden
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] text-xl transition-transform ${
-                    vibe === key ? "orb scale-105" : "bg-powder group-hover:-rotate-6"
-                  }`}
-                >
-                  {VIBE_EMOJI[key]}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold leading-tight text-ink">{VIBES[key].label}</span>
-                  <span className="block truncate text-xs text-ink-2">{VIBE_TAGLINES[key]}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* 03 Context */}
-        <section aria-labelledby="step-context" className="flex flex-col gap-3">
-          <StepTitle n="03" id="step-context" title="The context" sub="Optional, but the AI gets funnier with it." />
-          <input
-            id="context"
-            name="context"
-            aria-labelledby="step-context"
-            ref={contextInput}
-            defaultValue=""
-            onChange={(e) => setContext(e.target.value)}
-            maxLength={200}
-            placeholder="e.g. 2am in Butler, week 3 of the semester"
-            className="field"
-          />
-        </section>
+          ))}
+        </ol>
       </div>
 
-      {/* Live preview + submit */}
-      <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
-        <div className="card overflow-hidden p-2">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] bg-gradient-to-br from-powder to-ice">
-            {previewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={previewUrl} alt="" className={`h-full w-full object-cover transition duration-700 ${pending ? "scale-105 blur-[2px]" : ""}`} />
-            ) : (
-              <span className="flex h-full flex-col items-center justify-center gap-2 text-ink-3">
-                <span className="text-4xl" aria-hidden>
-                  {source === "ai" ? "🎨" : "🖼️"}
-                </span>
-                <span className="text-sm">{source === "ai" ? "Your AI photo shows up after posting" : "Your photo shows up here"}</span>
-              </span>
-            )}
-            <span className="chip glass absolute left-3 top-3 text-ink">
-              {VIBE_EMOJI[vibe]} {VIBES[vibe].label}
-            </span>
-            {pending && <span aria-hidden className="studio-scan absolute inset-x-0 h-24" />}
-          </div>
-          <div className="flex flex-col gap-2 p-3">
-            {context && <p className="serif text-xl leading-tight text-ink">“{context}”</p>}
-            {pending ? (
-              <div role="status" aria-live="polite" className="flex flex-col gap-2">
-                {COOKING.map((line, i) => (
-                  <p
-                    key={line}
-                    className={`flex items-center gap-2 text-sm transition-all duration-500 ${
-                      i < stage ? "text-ink-3" : i === stage ? "font-semibold text-ink" : "text-ink-3/50"
-                    }`}
-                  >
-                    <span aria-hidden className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${i < stage ? "bg-human text-white" : i === stage ? "orb animate-pulse" : "bg-powder"}`}>
-                      {i < stage ? "✓" : ""}
-                    </span>
-                    {line}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              [0, 1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-2 rounded-[14px] bg-background px-3 py-2.5 ring-1 ring-line">
-                  <span className="h-2 w-2 rounded-full bg-ai/60" aria-hidden />
-                  <span className="h-2.5 rounded-full bg-powder" style={{ width: `${80 - i * 12}%` }} />
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+      {/* 1. The moment */}
+      <section hidden={step !== 0} className="screen-in flex flex-1 flex-col justify-center gap-8 py-8">
+        <h1 className="word rise text-center text-6xl sm:text-8xl">Show me the moment.</h1>
 
-        {state.error && (
-          <p role="alert" className="rounded-[20px] bg-down-soft px-4 py-3 text-sm text-down-ink">
-            {state.error}
+        <label
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file && fileInput.current) {
+              const transfer = new DataTransfer();
+              transfer.items.add(file);
+              fileInput.current.files = transfer.files;
+              acceptFile(file);
+            }
+          }}
+          className={`rise group relative mx-auto flex aspect-[4/3] w-full max-w-md cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-[32px] border-[1.5px] border-dashed text-center transition duration-300 [animation-delay:150ms] ${
+            dragging ? "scale-[1.02] border-punch bg-white" : "border-ink/15 bg-white/60 hover:border-ink/40 hover:bg-white"
+          } ${source === "upload" ? "" : "hidden"}`}
+        >
+          {preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt="Your selected photo" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <>
+              <span aria-hidden className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-2xl text-white transition duration-300 group-hover:scale-110">
+                +
+              </span>
+              <span className="text-lg font-medium text-ink">Add a photo</span>
+              <span className="text-sm text-ink-3">tap, or drop it here · up to 4MB</span>
+            </>
+          )}
+          <input
+            ref={fileInput}
+            name="image"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            required={source === "upload"}
+            onChange={(e) => acceptFile(e.target.files?.[0])}
+            className="sr-only"
+          />
+        </label>
+        {fileError && source === "upload" && (
+          <p role="alert" className="text-center text-sm text-down-ink">
+            {fileError}
           </p>
         )}
 
-        <button type="submit" disabled={pending || !ready} className="btn btn-primary btn-lg w-full">
-          {pending ? (
-            <>
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />
-              Let it cook…
-            </>
-          ) : (
-            "Let the AI cook ✨"
+        {source === "library" && (
+          <div role="radiogroup" aria-label="Library photo" className="rise mx-auto grid w-full max-w-lg grid-cols-3 gap-2 sm:grid-cols-4">
+            {libraryChoices.map((image) => {
+              const isDrop = image.id === dailyDrop?.id;
+              return (
+                <button
+                  key={image.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={libraryId === image.id}
+                  aria-label={`${image.title}${isDrop ? " (today's drop)" : ""}`}
+                  onClick={() => setLibraryId(image.id)}
+                  className={`relative aspect-square overflow-hidden rounded-[18px] transition ${
+                    libraryId === image.id ? "ring-[3px] ring-ink ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={image.url} alt="" className="h-full w-full object-cover" />
+                  {isDrop && <span className="absolute left-1.5 top-1.5 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-medium">today</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {source === "ai" && (
+          <div className="rise mx-auto flex w-full max-w-md flex-col gap-2">
+            <label htmlFor="image_prompt" className="text-sm text-ink-2">
+              Describe the photo you want
+            </label>
+            <textarea
+              id="image_prompt"
+              name="image_prompt"
+              value={imagePrompt}
+              onChange={(e) => setImagePrompt(e.target.value)}
+              maxLength={IMAGE_PROMPT_MAX}
+              required
+              rows={3}
+              placeholder="e.g. A raccoon pulling an all-nighter in Butler Library"
+              className="field rounded-[22px]"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {IMAGE_PROMPT_IDEAS.map((idea) => (
+                <button key={idea} type="button" onClick={() => setImagePrompt(idea)} className="chip bg-powder text-ink">
+                  {idea}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col items-center gap-3">
+          {ready && (
+            <NextButton onClick={() => go(1)} />
           )}
-        </button>
-        <p className="text-center text-xs text-ink-3">
-          {ready ? "Gemini writes four captions. Then it's you vs. the machine." : "Pick a photo to unlock the button."}
-        </p>
-      </aside>
+          <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-ink-3">
+            {source !== "upload" && (
+              <button type="button" onClick={() => setSource("upload")} className="underline-offset-4 hover:text-ink hover:underline">
+                upload my own
+              </button>
+            )}
+            {source !== "library" && libraryChoices.length > 0 && (
+              <button type="button" onClick={() => setSource("library")} className="underline-offset-4 hover:text-ink hover:underline">
+                {dailyDrop ? "or use today's photo" : "or pick one of ours"}
+              </button>
+            )}
+            {source !== "ai" && aiPhotosEnabled && (
+              <button type="button" onClick={() => setSource("ai")} className="underline-offset-4 hover:text-ink hover:underline">
+                or describe one
+              </button>
+            )}
+          </p>
+        </div>
+      </section>
+
+      {/* 2. The vibe */}
+      <section hidden={step !== 1} className="flex flex-1 flex-col justify-center gap-8 py-8">
+        {step === 1 && <h2 className="word rise text-center text-6xl sm:text-8xl">What&apos;s the vibe?</h2>}
+        <div role="radiogroup" aria-label="Caption style" className="mx-auto grid w-full max-w-xl gap-2.5">
+          {(Object.keys(VIBES) as Vibe[]).map((key, i) => (
+            <button
+              key={key}
+              type="button"
+              role="radio"
+              aria-checked={vibe === key}
+              onClick={() => {
+                setVibe(key);
+                go(2);
+              }}
+              className={`rise group flex items-center justify-between gap-4 rounded-[22px] px-6 py-5 text-left transition duration-300 ${
+                vibe === key ? "bg-ink text-white" : "bg-white text-ink ring-1 ring-line hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-26px_rgba(22,21,20,0.4)]"
+              }`}
+              style={{ animationDelay: `${80 + i * 60}ms` }}
+            >
+              <span>
+                <span className="block text-xl font-medium tracking-tight">{VIBES[key].label}</span>
+                <span className={`block text-sm ${vibe === key ? "text-white/60" : "text-ink-3"}`}>{VIBE_TAGLINES[key]}</span>
+              </span>
+              <span aria-hidden className="text-lg opacity-40 transition group-hover:translate-x-1 group-hover:opacity-100">
+                →
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. Context */}
+      <section hidden={step !== 2} className="flex flex-1 flex-col justify-center gap-8 py-8">
+        {step === 2 && <h2 className="word rise text-center text-6xl sm:text-8xl">Anything we should know?</h2>}
+        <input
+          id="context"
+          name="context"
+          aria-label="Context (optional)"
+          ref={contextInput}
+          defaultValue=""
+          onChange={(e) => setContext(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              go(3);
+            }
+          }}
+          maxLength={200}
+          placeholder="2am in Butler, week 3 of the semester…"
+          className="mx-auto w-full max-w-xl border-0 border-b-[1.5px] border-ink/15 bg-transparent px-1 py-3 text-center text-2xl text-ink outline-none transition placeholder:text-ink-3/70 focus:border-ink sm:text-3xl"
+        />
+        <div className="flex flex-col items-center gap-3">
+          <NextButton onClick={() => go(3)} label={context.trim() ? "Next" : "Skip"} />
+          <p className="text-sm text-ink-3">Optional. The AI gets funnier with it.</p>
+        </div>
+      </section>
+
+      {/* 4. The punchline */}
+      <section hidden={step !== 3} className="flex flex-1 flex-col items-center justify-center gap-6 py-6">
+        {step === 3 && (
+          <h2 className="word rise text-center text-6xl sm:text-8xl">
+            {pending ? "Writing…" : "Ready for the punchline?"}
+          </h2>
+        )}
+        {previewUrl && (
+          <div className={`relative overflow-hidden rounded-[28px] ${pending ? "breathe" : ""}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewUrl} alt="" className="max-h-[30svh] w-auto max-w-full object-contain" />
+            {pending && <span aria-hidden className="studio-scan absolute inset-x-0 h-24" />}
+          </div>
+        )}
+        {!pending && (
+          <p className="flex flex-wrap justify-center gap-2 text-sm">
+            <button type="button" onClick={() => go(1)} className="rounded-full bg-white px-3 py-1.5 ring-1 ring-line hover:ring-ink/30">
+              {VIBES[vibe].label}
+            </button>
+            <button type="button" onClick={() => go(2)} className="max-w-[18rem] truncate rounded-full bg-white px-3 py-1.5 text-ink-2 ring-1 ring-line hover:ring-ink/30">
+              {context.trim() ? `“${context.trim()}”` : "no context"}
+            </button>
+          </p>
+        )}
+
+        {pending ? (
+          <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-ink-2">
+            <span className="dots text-ink">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span key={stage} className="rise text-base">
+              {COOKING[stage]}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+            <button
+              type="submit"
+              disabled={!ready}
+              className="group inline-flex items-center gap-3 rounded-full bg-punch px-9 py-4 text-lg font-medium text-white shadow-[0_20px_40px_-20px_rgba(255,91,46,0.9)] transition hover:scale-[1.03] active:scale-[0.97] disabled:opacity-40"
+            >
+              Generate &amp; post <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+            </button>
+            <p className="max-w-xs text-center text-sm text-ink-3">
+              The AI writes four captions and posts your meme in one go. Then classmates vote, blind.
+            </p>
+          </div>
+        )}
+
+        {state.error && (
+          <p role="alert" className="max-w-md text-center text-sm text-down-ink">
+            {state.error}
+          </p>
+        )}
+      </section>
     </form>
   );
 }
 
-function StepTitle({ n, id, title, sub }: { n: string; id: string; title: string; sub: string }) {
+function NextButton({ onClick, label = "Next" }: { onClick: () => void; label?: string }) {
   return (
-    <div className="flex items-baseline gap-3">
-      <span className="display text-sm text-sky-deep">{n}</span>
-      <div>
-        <h2 id={id} className="display text-2xl text-ink">
-          {title}
-        </h2>
-        <p className="text-sm text-ink-2">{sub}</p>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className="rise group inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-lg font-medium text-white transition hover:scale-[1.03] active:scale-[0.97]"
+    >
+      {label} <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+    </button>
   );
 }

@@ -49,7 +49,7 @@ export default async function ChallengePage() {
   const humanEntries = entries.filter((e) => e.reveal?.authorType === "human" && e.reveal.isMine).length;
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-8 sm:px-6 sm:pt-12">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-5 pb-16 pt-20 sm:px-8 sm:pt-24">
       {/* Today's drop */}
       <section className="animate-fade-up relative grid overflow-hidden rounded-[40px] bg-ice text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] lg:grid-cols-[1.1fr_0.9fr]">
         <span aria-hidden className="absolute -left-16 -top-24 h-80 w-80 rounded-full bg-white/50 blur-3xl" />
@@ -95,7 +95,7 @@ export default async function ChallengePage() {
         </div>
         <div className="relative min-h-72 p-3 lg:p-4">
           {drop ? (
-            <figure className="relative h-full min-h-72 overflow-hidden rounded-[30px] bg-powder shadow-[0_30px_60px_-30px_rgba(22,38,61,0.5)]">
+            <figure className="relative h-full min-h-72 overflow-hidden rounded-[30px] bg-powder shadow-[0_30px_60px_-30px_rgba(22,21,20,0.5)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={drop.url} alt={drop.altText} className="absolute inset-0 h-full w-full object-cover" />
               <figcaption className="chip glass absolute bottom-3 left-3 text-ink">📍 {drop.title}</figcaption>

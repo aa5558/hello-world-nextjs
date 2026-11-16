@@ -56,7 +56,7 @@ export default async function SurprisePage(props: PageProps<"/surprise">) {
   const tryAnother = `/surprise?seen=${seen.join(",")}`;
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-10 px-4 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[0.8fr_1.2fr]">
+    <main className="mx-auto grid w-full max-w-6xl gap-10 px-5 pb-16 pt-20 sm:px-8 sm:pt-24 lg:grid-cols-[0.8fr_1.2fr]">
       <section className="animate-fade-up flex flex-col items-start gap-5 lg:sticky lg:top-28 lg:self-start">
         <ModeTabs mode="battle" />
         <span key={id} className="orb animate-roll flex h-20 w-20 items-center justify-center rounded-[26px] text-4xl">🎲</span>
@@ -110,7 +110,7 @@ function ModeTabs({ mode }: { mode: "battle" | "fresh" }) {
           href={tab.href}
           aria-current={mode === tab.key ? "page" : undefined}
           className={`rounded-full px-3.5 py-1.5 font-medium transition ${
-            mode === tab.key ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(22,38,61,0.18)]" : "text-ink-2 hover:text-ink"
+            mode === tab.key ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(22,21,20,0.18)]" : "text-ink-2 hover:text-ink"
           }`}
         >
           {tab.label}
@@ -137,7 +137,7 @@ async function FreshPhoto({ id, seen, signedIn }: { id?: string; seen: string[];
   const go = signedIn ? studio : `/login?next=${encodeURIComponent(studio)}`;
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-10 px-4 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[0.8fr_1.2fr]">
+    <main className="mx-auto grid w-full max-w-6xl gap-10 px-5 pb-16 pt-20 sm:px-8 sm:pt-24 lg:grid-cols-[0.8fr_1.2fr]">
       <section className="animate-fade-up flex flex-col items-start gap-5 lg:sticky lg:top-28 lg:self-start">
         <ModeTabs mode="fresh" />
         <span key={id} className="orb animate-roll flex h-20 w-20 items-center justify-center rounded-[26px] text-4xl">✨</span>

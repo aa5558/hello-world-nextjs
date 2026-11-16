@@ -17,7 +17,7 @@ export default async function MoviesPage() {
 
   if (error) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-4 pt-10">
+      <main className="mx-auto w-full max-w-2xl px-4 pt-20">
         <p role="alert" className="rounded-[22px] bg-down-soft p-4 text-sm text-down-ink">Error loading movies: {error.message}</p>
       </main>
     );
@@ -26,7 +26,7 @@ export default async function MoviesPage() {
   const movies = (data ?? []) as Movie[];
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 pt-10">
+    <main className="mx-auto w-full max-w-2xl px-4 pt-20">
       <p className="eyebrow">from the archive</p>
       <h1 className="display mb-6 mt-1 text-5xl">Movies</h1>
       <div className="card overflow-hidden">
