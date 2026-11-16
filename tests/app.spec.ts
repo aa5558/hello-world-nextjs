@@ -695,7 +695,8 @@ test.describe("the world reacts", () => {
     const box = (await studio.boundingBox())!;
     await page.mouse.move(box.x + box.width * 0.9, box.y + 10);
     await page.mouse.move(box.x + box.width * 0.8, box.y + 20);
-    expect(await studio.locator("xpath=..").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--ry"))).toBe("");
+    // No tilt is applied (empty, or the resting 0deg).
+    expect(["", "0deg"]).toContain(await studio.locator("xpath=..").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--ry")));
     await page.getByRole("link", { name: /The Arena/ }).click();
     await expect(page.getByRole("heading", { name: /Which one.s funnier/ })).toBeVisible();
     await context.close();
