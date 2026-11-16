@@ -93,7 +93,7 @@ export default async function YouPage(props: PageProps<"/you">) {
                 {name.charAt(0).toUpperCase()}
               </span>
             )}
-            <p className="neon glow-pink text-5xl sm:text-6xl">{name}</p>
+            <p className="word glow-pink text-4xl sm:text-5xl">{name}</p>
             <p className="text-sm text-ink-3">you&apos;re in your</p>
             <h1 className="word glow-gold text-5xl sm:text-6xl">
               <Ink text={era.name} />

@@ -36,7 +36,7 @@ export function Opening({ signedIn, skipIntro }: { signedIn: boolean; skipIntro:
         <div className={`relative flex flex-col items-center ${stage === "entering" ? "walk-in" : ""}`}>
           <h1 className="flex flex-col items-center">
             <span className="neon glow-pink flicker-on text-[clamp(4.5rem,18vw,10rem)] [animation-delay:400ms]">morningside.</span>
-            <span className="neon glow-cyan flicker-on mt-1 text-[clamp(2.4rem,8vw,4.5rem)] [animation-delay:1500ms]">memes after dark.</span>
+            <span className="word glow-cyan flicker-on mt-3 text-[clamp(1.8rem,6vw,3.2rem)] [animation-delay:1500ms]">memes after dark.</span>
           </h1>
           <p className="tube glow-green flicker-on mt-8 text-sm sm:text-base [animation-delay:2500ms]">The club is open</p>
           <button
