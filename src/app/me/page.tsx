@@ -64,9 +64,9 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pt-8 sm:px-6 sm:pt-12">
-      <section className="animate-fade-up relative overflow-hidden rounded-[36px] bg-ink p-6 text-white sm:p-10">
-        <span aria-hidden className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-sky/40 blur-3xl" />
-        <span aria-hidden className="absolute -bottom-24 left-10 h-56 w-56 rounded-full bg-ai/25 blur-3xl" />
+      <section className="animate-fade-up relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#5a2d7a] to-midnight p-6 text-white shadow-[0_30px_60px_-30px_rgba(42,22,64,0.8)] sm:p-10">
+        <span aria-hidden className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-lavender/30 blur-3xl" />
+        <span aria-hidden className="absolute -bottom-24 left-10 h-56 w-56 rounded-full bg-gold/25 blur-3xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
           {profile?.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -81,6 +81,9 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
             </h1>
             <p className="text-sm text-white/70">Based on {era.basis}.</p>
           </div>
+          <Link href="/profile" className="btn btn-sm self-start bg-white/10 text-white ring-1 ring-white/25 sm:ml-auto sm:self-center">
+            Edit profile
+          </Link>
         </div>
       </section>
 
@@ -103,7 +106,7 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
             <li
               key={a.key}
               className={`flex flex-col gap-2 rounded-[22px] p-3 transition ${
-                a.unlocked ? "bg-white shadow-[0_14px_30px_-20px_rgba(22,38,61,0.4)] ring-1 ring-line" : "bg-powder/50 text-ink-3"
+                a.unlocked ? "bg-white shadow-[0_14px_30px_-20px_rgba(28,23,36,0.4)] ring-1 ring-line" : "bg-powder/50 text-ink-3"
               }`}
             >
               <span aria-hidden className={`flex h-10 w-10 items-center justify-center rounded-[14px] text-xl ${a.unlocked ? "orb" : "bg-white/70 grayscale"}`}>
@@ -150,7 +153,7 @@ export default async function MyPostsPage(props: PageProps<"/me">) {
             aria-current={tab === item.key ? "page" : undefined}
             className={`rounded-full px-4 py-2 font-medium transition ${
               tab === item.key
-                ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(22,38,61,0.18)]"
+                ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(28,23,36,0.18)]"
                 : "text-ink-2 hover:text-ink"
             }`}
           >

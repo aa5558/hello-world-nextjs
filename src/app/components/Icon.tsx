@@ -13,6 +13,10 @@ const PATHS = {
   image: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3",
   pencil: "M4 20h4L19 9l-4-4L4 16zM13 7l4 4",
   trash: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13",
+  home: "M4 10.5L12 4l8 6.5V19a1 1 0 01-1 1h-4.5v-6h-5v6H5a1 1 0 01-1-1z",
+  versus: "M13 3L5 13.5h6L10 21l8-10.5h-6z",
+  trophy: "M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8.5 20h7M10 17h4",
+  check: "M5 12.5l4.5 4.5L19 7",
   share: "M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 3v13M7 8l5-5 5 5",
 } as const;
 

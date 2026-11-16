@@ -48,10 +48,12 @@ export function CaptionRow({
         <span
           className={`display flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm ${
             rank === 1
-              ? "bg-butter text-butter-ink shadow-[inset_0_1px_0_#fff,0_6px_14px_-8px_rgba(122,86,0,0.6)]"
-              : rank <= 3
-                ? "orb text-ink"
-                : "bg-white text-ink-3 ring-1 ring-line"
+              ? "bg-gradient-to-b from-[#ecd59c] to-[#c4a05a] text-[#3d2a05] shadow-[inset_0_1px_0_#fff8e6,0_6px_14px_-8px_rgba(138,100,24,0.8)]"
+              : rank === 2
+                ? "bg-gradient-to-b from-[#f1f0f4] to-[#c9c6d1] text-[#3b3846] shadow-[inset_0_1px_0_#fff,0_6px_14px_-8px_rgba(60,56,70,0.6)]"
+                : rank === 3
+                  ? "bg-gradient-to-b from-[#ecc7a6] to-[#b57d55] text-[#3b2212] shadow-[inset_0_1px_0_#fff1e4,0_6px_14px_-8px_rgba(120,70,30,0.7)]"
+                  : "bg-white text-ink-3 ring-1 ring-line"
           }`}
         >
           {rank}

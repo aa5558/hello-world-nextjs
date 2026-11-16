@@ -30,14 +30,13 @@ async function signIn(context: BrowserContext, user: { id: string; email: string
 }
 
 test.describe("signed out", () => {
-  test("home page shows the hero, scoreboard, challenge and feed", async ({ page }) => {
+  test("home page shows the header, today's prompt and feed", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Let's see who's");
-    await expect(page.getByText("the scoreboard · all time")).toBeVisible();
-    await expect(page.getByRole("link", { name: /Let's make something iconic/ })).toHaveAttribute("href", "/login?next=/create");
-    await expect(page.getByText("today's challenge").first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Campus life, captioned.");
+    await expect(page.getByRole("link", { name: /Create a meme/ })).toHaveAttribute("href", "/login?next=/create");
+    await expect(page.getByText("Today's prompt").first()).toBeVisible();
     expect(await page.locator("article").count()).toBeGreaterThan(5);
-    await page.getByRole("link", { name: "🔥 Top this week" }).click();
+    await page.getByRole("link", { name: "Top this week" }).click();
     await expect(page).toHaveURL(/sort=top/);
     await expect(page.getByRole("heading", { name: /Top this week/ })).toBeVisible();
   });
@@ -54,7 +53,9 @@ test.describe("signed out", () => {
 
   test("challenge, post and surprise pages render; voting asks you to sign in", async ({ page }) => {
     await page.goto("/challenge");
-    await expect(page.getByRole("heading", { name: /leaderboard/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /funniest on campus/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /ranking/ })).toBeVisible();
+    await expect(page.getByText("the scoreboard · all time")).toBeVisible();
     await page.goto("/surprise");
     await expect(page).toHaveURL(/surprise\?id=/);
     await expect(page.locator("article")).toHaveCount(1);
@@ -65,8 +66,8 @@ test.describe("signed out", () => {
   test("the Daily Drop features today's library photo, never tomorrow's", async ({ page }) => {
     await page.goto("/challenge");
     await expect(page.getByRole("img", { name: "Students sitting on snowy Low Steps in puffer jackets" })).toBeVisible();
-    await expect(page.getByText("📍 Low Steps, first snow")).toBeVisible();
-    await expect(page.getByRole("link", { name: "✨ Meme today's drop" })).toHaveAttribute("href", /\/login\?next=%2Fcreate%3Fimage%3Df0000000/);
+    await expect(page.getByText("Low Steps, first snow")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Meme today's photo" })).toHaveAttribute("href", /\/login\?next=%2Fcreate%3Fimage%3Df0000000/);
     await expect(page.locator("body")).not.toContainText("Tomorrow's surprise");
   });
 
@@ -254,10 +255,10 @@ test.describe("signed in", () => {
     await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: png });
     await page.getByRole("textbox", { name: /context/i }).fill("an abstract gradient");
     await page.getByRole("radio", { name: /Chronically online/ }).click();
-    await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
+    await page.getByRole("button", { name: "Generate captions" }).click();
     await expect(page.getByRole("status")).toContainText("Looking very closely");
     await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}\?new=1$/, { timeout: 70_000 });
-    await expect(page.getByText("fresh out the oven")).toBeVisible();
+    await expect(page.getByText("Your meme is live.")).toBeVisible();
     await expect(page.getByText("✨ your post")).toBeVisible();
     expect(await page.locator("li").filter({ hasText: "🤖 Gemini" }).count()).toBeGreaterThan(0);
     // The run was logged against a chain, with every model call, and linked
@@ -289,7 +290,7 @@ test.describe("signed in", () => {
       await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
       await page.getByRole("textbox", { name: /context/i }).fill("2am in Butler");
       await page.getByRole("radio", { name: /Columbia core/ }).click();
-      await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
+      await page.getByRole("button", { name: "Generate captions" }).click();
       await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}\?new=1$/, { timeout: 30_000 });
       const calls = (await geminiCalls()).slice(before);
       expect(calls).toHaveLength(1);
@@ -320,7 +321,7 @@ test.describe("signed in", () => {
       const objectsBefore = await objects();
       await page.goto("/create");
       await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
-      await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
+      await page.getByRole("button", { name: "Generate captions" }).click();
       const alert = page.locator("main").getByRole("alert");
       await expect(alert).toContainText("hit its usage limit");
       await expect(alert).toContainText("Your photo wasn't posted");
@@ -369,7 +370,7 @@ test.describe("signed in", () => {
       const callsBefore = (await geminiCalls()).length;
       await page.goto("/create");
       await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
-      await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
+      await page.getByRole("button", { name: "Generate captions" }).click();
       await expect(page.locator("main").getByRole("alert")).toContainText("overloaded, even after retrying", { timeout: 60_000 });
       const calls = (await geminiCalls()).slice(callsBefore);
       // Every callable model was tried, a bounded number of times.
@@ -389,7 +390,7 @@ test.describe("signed in", () => {
     try {
       await page.goto("/create");
       await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
-      await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
+      await page.getByRole("button", { name: "Generate captions" }).click();
       await page.waitForURL(/\/g\/[0-9a-f-]{36}\?new=1$/, { timeout: 60_000 });
       const postId = page.url().match(/\/g\/([0-9a-f-]{36})/)![1];
       const [run] = await sql<{ id: string; status: string; caption_ids: string[] }>(
@@ -419,7 +420,7 @@ test.describe("signed in", () => {
     const callsBefore = (await geminiCalls()).length;
     await page.goto("/create");
     await page.locator('input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: await samplePng() });
-    await expect(page.getByRole("button", { name: "Let the AI cook ✨" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Generate captions" })).toBeEnabled();
     // Replay the id of a submission that already produced a post, right
     // before submitting (React re-renders reset the hidden field earlier).
     await page.locator("form").evaluate((form, id) => {
@@ -440,7 +441,7 @@ test.describe("signed in", () => {
     try {
       const [{ n: before }] = await sql<{ n: number }>(`select count(*) n from public.generations where user_id = $1`, [USERS[9].id]);
       await page.goto("/create?image=f0000000-0000-4000-8000-000000000003");
-      await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
+      await page.getByRole("button", { name: "Generate captions" }).click();
       await expect(page.locator("main").getByRole("alert")).toContainText("The AI couldn't caption that one");
       await expect(page).toHaveURL(/\/create/);
       const [{ n: after }] = await sql<{ n: number }>(`select count(*) n from public.generations where user_id = $1`, [USERS[9].id]);
@@ -461,10 +462,10 @@ test.describe("signed in", () => {
     test.skip(realGemini && !process.env.GEMINI_API_KEY, "GEMINI_API_KEY not set");
     await signIn(context, USERS[8]);
     await page.goto("/challenge");
-    await page.getByRole("link", { name: "✨ Meme today's drop" }).click();
+    await page.getByRole("link", { name: "Meme today's photo" }).click();
     await expect(page).toHaveURL(/\/create\?image=/);
     await expect(page.getByRole("radio", { name: "Low Steps, first snow (today's drop)" })).toHaveAttribute("aria-checked", "true");
-    await page.getByRole("button", { name: "Let the AI cook ✨" }).click();
+    await page.getByRole("button", { name: "Generate captions" }).click();
     await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}\?new=1$/, { timeout: 70_000 });
     const id = page.url().match(/g\/([0-9a-f-]{36})/)![1];
     const [post] = await sql<{ source_image_id: string; image_path: string }>(`select source_image_id, image_path from public.generations where id = $1`, [id]);
@@ -480,5 +481,36 @@ test.describe("signed in", () => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow, path).toBeLessThanOrEqual(0);
     }
+  });
+});
+
+test.describe("battles", () => {
+  test("signed out: one photo, two blind captions, voting asks you to sign in", async ({ page }) => {
+    await page.goto("/battles");
+    await expect(page.getByRole("heading", { name: /Which one's funnier/ })).toBeVisible();
+    const picks = page.locator("button[aria-pressed]");
+    await expect(picks).toHaveCount(2);
+    await expect(page.getByText(/Written by/)).toHaveCount(0);
+    await picks.first().click();
+    await expect(page).toHaveURL(/\/login\?next=%2Fbattles|\/login\?next=\/battles/);
+  });
+
+  test("signed in: picking a caption upvotes it, reveals only that author, and offers the next battle", async ({ page, context }) => {
+    await signIn(context, USERS.find((u: { id: string }) => u.id === REGULAR_ID));
+    await page.goto("/battles");
+    const picks = page.locator("button[aria-pressed]");
+    await expect(picks).toHaveCount(2);
+    const captionId = await picks.first().getAttribute("data-caption-id");
+    await picks.first().click();
+    await expect(picks.first()).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText(/Written by/)).toHaveCount(1);
+    const votes = await sql<{ vote: number }>(
+      `select vote from public.caption_votes where user_id = $1 and caption_id = $2`,
+      [REGULAR_ID, captionId]
+    );
+    expect(votes.map((v) => v.vote)).toEqual([1]);
+    await page.getByRole("link", { name: /Next battle/ }).click();
+    await expect(page).toHaveURL(/\/battles\?seen=/);
+    await expect(page.locator("button[aria-pressed]").first()).toHaveAttribute("aria-pressed", "false");
   });
 });

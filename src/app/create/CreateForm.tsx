@@ -120,7 +120,7 @@ export function CreateForm({
       <div className="flex min-w-0 flex-col gap-8">
         {/* 01 Photo */}
         <section aria-labelledby="step-photo" className="flex flex-col gap-4">
-          <StepTitle n="01" id="step-photo" title="The photo" sub="Anything from campus life counts." />
+          <StepTitle n="01" id="step-photo" title="Upload a photo" sub="Any campus moment. Dining hall plates count." />
 
           {sources.length > 1 && (
             <div role="radiogroup" aria-label="Photo source" className="flex flex-wrap gap-2">
@@ -133,7 +133,7 @@ export function CreateForm({
                   onClick={() => setSource(option.value)}
                   className={`flex flex-col items-start rounded-[18px] px-4 py-2.5 text-left text-sm transition ${
                     source === option.value
-                      ? "bg-ink text-white shadow-[0_10px_24px_-14px_rgba(22,38,61,0.9)]"
+                      ? "bg-plum text-white shadow-[0_10px_24px_-14px_rgba(28,23,36,0.9)]"
                       : "bg-white text-ink ring-1 ring-line hover:ring-sky"
                   }`}
                 >
@@ -254,7 +254,7 @@ export function CreateForm({
 
         {/* 02 Voice */}
         <section aria-labelledby="step-voice" className="flex flex-col gap-4">
-          <StepTitle n="02" id="step-voice" title="The voice" sub="Who's the AI pretending to be?" />
+          <StepTitle n="02" id="step-voice" title="Pick a caption style" sub="Who should the AI sound like?" />
           <div role="radiogroup" aria-labelledby="step-voice" className="grid grid-cols-2 gap-2">
             {(Object.keys(VIBES) as Vibe[]).map((key) => (
               <button
@@ -286,7 +286,7 @@ export function CreateForm({
 
         {/* 03 Context */}
         <section aria-labelledby="step-context" className="flex flex-col gap-3">
-          <StepTitle n="03" id="step-context" title="The context" sub="Optional, but the AI gets funnier with it." />
+          <StepTitle n="03" id="step-context" title="Add context" sub="Optional, but the AI gets funnier with it." />
           <input
             id="context"
             name="context"
@@ -332,7 +332,7 @@ export function CreateForm({
                       i < stage ? "text-ink-3" : i === stage ? "font-semibold text-ink" : "text-ink-3/50"
                     }`}
                   >
-                    <span aria-hidden className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${i < stage ? "bg-human text-white" : i === stage ? "orb animate-pulse" : "bg-powder"}`}>
+                    <span aria-hidden className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${i < stage ? "bg-plum text-white" : i === stage ? "orb animate-pulse" : "bg-powder"}`}>
                       {i < stage ? "✓" : ""}
                     </span>
                     {line}
@@ -360,14 +360,14 @@ export function CreateForm({
           {pending ? (
             <>
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />
-              Let it cook…
+              Writing captions…
             </>
           ) : (
-            "Let the AI cook ✨"
+            "Generate captions"
           )}
         </button>
         <p className="text-center text-xs text-ink-3">
-          {ready ? "Gemini writes four captions. Then it's you vs. the machine." : "Pick a photo to unlock the button."}
+          {ready ? "The AI writes four captions and publishes your meme. Then it's you vs. the machine." : "Upload a photo to unlock the button."}
         </p>
       </aside>
     </form>

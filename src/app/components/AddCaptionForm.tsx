@@ -27,7 +27,7 @@ export function AddCaptionForm({ generationId }: { generationId: string }) {
       <label htmlFor={`caption-${generationId}`} className="display text-lg">
         think you&apos;re funnier than <span className="serif text-xl">Gemini?</span>
       </label>
-      <div className="flex gap-2 rounded-full bg-white p-1.5 shadow-[inset_0_0_0_1px_rgba(22,38,61,0.1)] focus-within:shadow-[inset_0_0_0_1px_#69b5ff,0_0_0_4px_rgba(105,181,255,0.25)]">
+      <div className="flex gap-2 rounded-full bg-white p-1.5 shadow-[inset_0_0_0_1px_rgba(28,23,36,0.1)] focus-within:shadow-[inset_0_0_0_1px_#69b5ff,0_0_0_4px_rgba(105,181,255,0.25)]">
         <input
           id={`caption-${generationId}`}
           name="text"

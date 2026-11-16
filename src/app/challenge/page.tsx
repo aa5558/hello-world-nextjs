@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CaptionRow } from "@/app/components/CaptionRow";
 import { Countdown } from "@/app/components/Countdown";
-import { Icon } from "@/app/components/Icon";
 import { EmptyCard } from "@/app/components/PageHero";
 import { RevealBadge } from "@/app/components/RevealBadge";
-import { getDailyWinner, getLeaderboard } from "@/lib/battles";
+import { ScoreboardCard } from "@/app/components/ScoreboardCard";
+import { getDailyWinner, getLeaderboard, getScoreboard } from "@/lib/battles";
 import {
   getChallengeDate,
   getDailyPrompt,
@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "The Daily Drop — Morningside Memes",
+  title: "Leaderboard · Morningside Memes",
   description: "A new prompt (and sometimes a photo) every day at midnight. Top caption wins.",
 };
 
@@ -32,12 +32,13 @@ export default async function ChallengePage() {
   const today = getChallengeDate();
   const yesterday = shiftDay(today, -1);
 
-  const [{ entries, error }, { generations: photos }, winner, drop] =
+  const [{ entries, error }, { generations: photos }, winner, drop, scoreboard] =
     await Promise.all([
       getLeaderboard(supabase, today, user?.id),
       getFeed(supabase, { day: today }),
       getDailyWinner(supabase, yesterday),
       getDailyDrop(supabase, today),
+      getScoreboard(supabase),
     ]);
 
   const postHref = user ? "/create" : "/login?next=/create";
@@ -49,74 +50,25 @@ export default async function ChallengePage() {
   const humanEntries = entries.filter((e) => e.reveal?.authorType === "human" && e.reveal.isMine).length;
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-8 sm:px-6 sm:pt-12">
-      {/* Today's drop */}
-      <section className="animate-fade-up relative grid overflow-hidden rounded-[40px] bg-ice text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] lg:grid-cols-[1.1fr_0.9fr]">
-        <span aria-hidden className="absolute -left-16 -top-24 h-80 w-80 rounded-full bg-white/50 blur-3xl" />
-        <div className="relative flex flex-col gap-5 px-6 py-10 sm:px-12 sm:py-14">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="chip bg-ink text-white">
-              <span className="animate-pulse-dot h-1.5 w-1.5 rounded-full bg-sky" aria-hidden /> the daily drop
-            </span>
-            <span className="chip bg-white/70 text-ink">
-              ⏳ <Countdown initialMs={msUntilNextChallenge()} /> left
-            </span>
-          </div>
-          <h1 className="display text-5xl sm:text-7xl">{getDailyPrompt(today)}</h1>
-          <p className="max-w-lg text-[17px] leading-relaxed text-ink-2">
-            {drop
-              ? "Today's photo just dropped. Make it a meme, or caption someone else's take. Top-voted caption at midnight takes the crown."
-              : "Post a photo for today's prompt, or caption someone else's. Top-voted caption at midnight takes the crown."}
-          </p>
-          <dl className="flex flex-wrap gap-2 text-sm">
-            <div className="rounded-full bg-white/70 px-4 py-2">
-              <dt className="sr-only">Photos today</dt>
-              <dd><span className="display text-lg tabular-nums">{photos.length}</span> {photos.length === 1 ? "photo" : "photos"}</dd>
-            </div>
-            <div className="rounded-full bg-white/70 px-4 py-2">
-              <dt className="sr-only">Captions today</dt>
-              <dd><span className="display text-lg tabular-nums">{entries.length}</span> {entries.length === 1 ? "caption" : "captions"} in the ring</dd>
-            </div>
-            {humanEntries > 0 && (
-              <div className="rounded-full bg-human-soft px-4 py-2 text-human-ink">
-                <dt className="sr-only">Your entries</dt>
-                <dd>you&apos;re in with {humanEntries} ✍️</dd>
-              </div>
-            )}
-          </dl>
-          <div className="flex flex-wrap gap-3">
-            <Link href={dropHref} className="btn btn-primary btn-lg">
-              {drop ? "✨ Meme today's drop" : "📸 Post a photo"}
-            </Link>
-            <Link href="/surprise" className="btn btn-ghost btn-lg">
-              🎲 Caption a random one
-            </Link>
-          </div>
-        </div>
-        <div className="relative min-h-72 p-3 lg:p-4">
-          {drop ? (
-            <figure className="relative h-full min-h-72 overflow-hidden rounded-[30px] bg-powder shadow-[0_30px_60px_-30px_rgba(22,38,61,0.5)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={drop.url} alt={drop.altText} className="absolute inset-0 h-full w-full object-cover" />
-              <figcaption className="chip glass absolute bottom-3 left-3 text-ink">📍 {drop.title}</figcaption>
-            </figure>
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-3 rounded-[30px] bg-white/50 p-8 text-center">
-              <span aria-hidden className="animate-float text-[6rem] leading-none">🏆</span>
-              <p className="text-sm text-ink-2">No featured photo today. Bring your own.</p>
-            </div>
-          )}
-        </div>
-      </section>
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pt-8 sm:px-6 sm:pt-12">
+      <header className="flex flex-col gap-2">
+        <p className="eyebrow text-gold-ink">Leaderboard</p>
+        <h1 className="display text-4xl sm:text-6xl">
+          Who&apos;s the funniest on <span className="serif text-plum">campus?</span>
+        </h1>
+        <p className="max-w-xl text-[16px] text-ink-2">
+          Today&apos;s top captions for the daily prompt, ranked by votes. The best one at midnight takes
+          the crown.
+        </p>
+      </header>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* Leaderboard */}
         <section className="flex min-w-0 flex-col gap-4">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="eyebrow">live</p>
-              <h2 className="display mt-1 text-4xl">
-                Today&apos;s <span className="serif">leaderboard</span>
+              <h2 className="display text-3xl">
+                Today&apos;s <span className="serif">ranking</span>
               </h2>
             </div>
             <span className="chip bg-powder text-ink">
@@ -138,7 +90,7 @@ export default async function ChallengePage() {
                 Start today&apos;s challenge
               </Link>
               <Link href="/surprise" className="btn btn-ghost">
-                🎲 Caption a random one
+                Caption a random one
               </Link>
             </EmptyCard>
           ) : (
@@ -167,6 +119,38 @@ export default async function ChallengePage() {
         </section>
 
         <aside className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
+          {/* Today's prompt */}
+          <section className="flex flex-col gap-4 overflow-hidden rounded-[24px] border border-gold/40 bg-gold-soft/70 p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="chip bg-plum text-white">Today&apos;s prompt</span>
+              <span className="chip bg-white/80 text-ink">
+                <Countdown initialMs={msUntilNextChallenge()} /> left
+              </span>
+            </div>
+            <p className="display text-3xl">{getDailyPrompt(today)}</p>
+            {drop && (
+              <figure className="flex flex-col gap-1.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={drop.url} alt={drop.altText} className="aspect-[4/3] w-full rounded-2xl object-cover" />
+                <figcaption className="text-xs text-ink-3">{drop.title}</figcaption>
+              </figure>
+            )}
+            <p className="text-sm text-ink-2">
+              {photos.length} {photos.length === 1 ? "photo" : "photos"} · {entries.length}{" "}
+              {entries.length === 1 ? "caption" : "captions"} today
+              {humanEntries > 0 && <> · you&apos;re in with {humanEntries}</>}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href={dropHref} className="btn btn-primary btn-sm">
+                {drop ? "Meme today's photo" : "Post a photo"}
+              </Link>
+              <Link href="/surprise" className="btn btn-ghost btn-sm">
+                Caption a random one
+              </Link>
+            </div>
+          </section>
+
+          <ScoreboardCard scoreboard={scoreboard} />
           {/* Yesterday's winner */}
           <section className="flex flex-col gap-3">
             <h2 className="display text-3xl">
@@ -244,9 +228,6 @@ export default async function ChallengePage() {
             </section>
           )}
 
-          <Link href={postHref} className="btn btn-ice self-start">
-            Enter today&apos;s challenge <Icon name="arrow" className="h-4 w-4" />
-          </Link>
         </aside>
       </div>
     </main>

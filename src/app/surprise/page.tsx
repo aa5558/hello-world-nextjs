@@ -110,7 +110,7 @@ function ModeTabs({ mode }: { mode: "battle" | "fresh" }) {
           href={tab.href}
           aria-current={mode === tab.key ? "page" : undefined}
           className={`rounded-full px-3.5 py-1.5 font-medium transition ${
-            mode === tab.key ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(22,38,61,0.18)]" : "text-ink-2 hover:text-ink"
+            mode === tab.key ? "bg-white text-ink shadow-[0_2px_8px_-2px_rgba(28,23,36,0.18)]" : "text-ink-2 hover:text-ink"
           }`}
         >
           {tab.label}

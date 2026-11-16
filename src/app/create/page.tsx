@@ -38,9 +38,9 @@ export default async function CreatePage(props: PageProps<"/create">) {
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-8 sm:px-6 sm:pt-12">
       <header className="animate-fade-up flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-col gap-3">
-          <p className="eyebrow">meme studio</p>
-          <h1 className="display text-5xl text-ink sm:text-7xl">
-            Drop a photo. <span className="serif text-sky-deep">Let the AI cook.</span>
+          <p className="eyebrow text-gold-ink">Create</p>
+          <h1 className="display text-5xl text-ink sm:text-6xl">
+            Make a <span className="serif text-plum">meme.</span>
           </h1>
         </div>
         <div className="relative max-w-sm overflow-hidden rounded-[24px] bg-ice px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
