@@ -880,3 +880,87 @@ test.describe("competition (PM feedback)", () => {
     await expect(page.getByRole("region", { name: "Example meme" })).toHaveCount(0);
   });
 });
+
+test.describe("course requirements audit", () => {
+  test("Week 5: guests can browse public routes; gated routes ask for Google sign-in with a reason", async ({ page }) => {
+    for (const path of ["/", "/play", "/play?mode=guess", "/explore", "/results", "/how", "/movies"]) {
+      await page.goto(path);
+      expect(page.url(), path).not.toContain("/login");
+    }
+    await page.goto("/how");
+    await expect(page.getByText("Open to everyone")).toBeVisible();
+    await expect(page.getByText("With Google sign-in")).toBeVisible();
+    for (const [path, reason] of [["/create", "Sign in to create a meme."], ["/you", "Sign in to see your backstage."]] as const) {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/login\?next=/);
+      await expect(page.getByRole("heading", { name: reason })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+    }
+  });
+
+  test("Week 5: a guest who votes in Explore is sent to sign in, then back to that same meme", async ({ page }) => {
+    const [g] = await sql<{ id: string }>(`select generation_id as id from public.captions limit 1`);
+    await page.goto(`/g/${g.id}`);
+    await page.getByRole("list", { name: "Captions on this meme" }).getByRole("button", { name: "Upvote" }).first().click();
+    await expect(page).toHaveURL(new RegExp(`/login\\?next=${encodeURIComponent(`/g/${g.id}`)}`));
+    await expect(page.getByRole("heading", { name: "Sign in to vote and write captions." })).toBeVisible();
+    await expect(page.locator('input[name="next"]')).toHaveValue(`/g/${g.id}`);
+  });
+
+  test("Week 5 RLS: guests can't vote, publish, edit, delete, or read private data through the API", async ({ request }) => {
+    const H = { apikey: "mock-anon-key", Authorization: "Bearer mock-anon-key", "Content-Type": "application/json" };
+    const [c] = await sql<{ id: string; text: string; generation_id: string }>(`select id, text, generation_id from public.captions limit 1`);
+    const vote = await request.post(`${MOCK}/rest/v1/caption_votes`, { headers: H, data: { caption_id: c.id, user_id: REGULAR_ID, vote: 1 } });
+    expect((await vote.json()).code).toBe("42501");
+    const publish = await request.post(`${MOCK}/rest/v1/rpc/submit_human_caption`, { headers: H, data: { p_generation_id: c.generation_id, p_text: "guest" } });
+    expect((await publish.json()).code).toBe("42501");
+    await request.patch(`${MOCK}/rest/v1/captions?id=eq.${c.id}`, { headers: H, data: { text: "hacked" } });
+    await request.delete(`${MOCK}/rest/v1/generations?id=eq.${c.generation_id}`, { headers: H });
+    const [after] = await sql<{ text: string }>(`select text from public.captions where id = $1`, [c.id]);
+    expect(after.text).toBe(c.text);
+    expect((await sql(`select 1 from public.generations where id = $1`, [c.generation_id])).length).toBe(1);
+    expect(await (await request.get(`${MOCK}/rest/v1/profiles?select=*`, { headers: H })).json()).toEqual([]);
+    expect(await (await request.get(`${MOCK}/rest/v1/caption_votes?select=*`, { headers: H })).json()).toEqual([]);
+    const authors = await request.get(`${MOCK}/rest/v1/captions?select=user_id,author_type`, { headers: H });
+    expect((await authors.json()).code).toBe("42501");
+  });
+
+  test("Week 5 RLS: every public table has row level security on", async () => {
+    const off = await sql<{ relname: string }>(
+      `select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`
+    );
+    expect(off).toEqual([]);
+  });
+
+  test("Week 4: profiles table, signup trigger, nullable names", async () => {
+    const cols = await sql<{ column_name: string; is_nullable: string }>(
+      `select column_name, is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'profiles'`
+    );
+    const byName = Object.fromEntries(cols.map((c) => [c.column_name, c.is_nullable]));
+    expect(byName.first_name).toBe("YES");
+    expect(byName.last_name).toBe("YES");
+    expect(byName.avatar_url).toBe("YES");
+    const triggers = await sql(`select 1 from pg_trigger where tgname = 'on_auth_user_created'`);
+    expect(triggers.length).toBe(1);
+  });
+
+  test("Week 4: first and last name persist after a reload (and in the database)", async ({ page, context }) => {
+    // Note: the local Supabase stand-in has no Storage upload route, so the
+    // profile-photo upload (to the avatars bucket) is verified manually on
+    // the real deployment, not here.
+    const u = USERS[12] ?? USERS[6];
+    await signIn(context, u);
+    const last = `Lovelace-${Date.now() % 1000}`;
+    await page.goto("/you?s=account");
+    await page.getByLabel("First name").fill("Ada");
+    await page.getByLabel("Last name").fill(last);
+    await page.getByRole("button", { name: "Save profile" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
+    await page.reload();
+    await expect(page.getByLabel("First name")).toHaveValue("Ada");
+    await expect(page.getByLabel("Last name")).toHaveValue(last);
+    const [row] = await sql<{ first_name: string; last_name: string }>(`select first_name, last_name from public.profiles where id = $1`, [u.id]);
+    expect(row).toEqual({ first_name: "Ada", last_name: last });
+  });
+});

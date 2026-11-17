@@ -21,6 +21,7 @@ function placeFor(pathname: string, mode: string | null) {
   if (pathname.startsWith("/results")) return "the awards";
   if (pathname.startsWith("/you")) return "backstage";
   if (pathname.startsWith("/login")) return "the door";
+  if (pathname.startsWith("/how")) return "how to play";
   return "";
 }
 
@@ -154,11 +155,16 @@ export function Menu({ signedIn, onOpening = false }: { signedIn: boolean; onOpe
                 );
               })}
             </nav>
-            {!signedIn && (
-              <Link href="/login" className="tube glow-green self-start text-xs">
-                sign in with google
+            <div className="flex flex-wrap gap-5">
+              <Link href="/how" className="tube glow-cyan text-xs">
+                how to play
               </Link>
-            )}
+              {!signedIn && (
+                <Link href="/login" className="tube glow-green text-xs">
+                  sign in with google
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       )}

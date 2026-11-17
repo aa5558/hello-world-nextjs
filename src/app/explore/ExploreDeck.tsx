@@ -263,7 +263,7 @@ function Meme({
       {item.captions.length === 0 && <p className="text-center text-ink-3">No captions yet.</p>}
       <ul aria-label="Captions on this meme" className="flex flex-col gap-2">
         {item.captions.map((caption, i) => (
-          <CaptionLine key={caption.id} caption={caption} signedIn={Boolean(currentUserId)} delay={i * 60} />
+          <CaptionLine key={caption.id} caption={caption} generationId={item.id} signedIn={Boolean(currentUserId)} delay={i * 60} />
         ))}
       </ul>
 
@@ -355,7 +355,7 @@ function Meme({
 }
 
 // One caption: blind until you vote (or it's yours), then its author fades in.
-function CaptionLine({ caption, signedIn, delay }: { caption: FeedCaption; signedIn: boolean; delay: number }) {
+function CaptionLine({ caption, generationId, signedIn, delay }: { caption: FeedCaption; generationId: string; signedIn: boolean; delay: number }) {
   const router = useRouter();
   const [state, setState] = useState<VoteState>({
     upvotes: caption.upvotes,
@@ -373,7 +373,8 @@ function CaptionLine({ caption, signedIn, delay }: { caption: FeedCaption; signe
 
   function vote(v: -1 | 1) {
     if (!signedIn) {
-      router.push("/login?next=/explore");
+      // Back to this exact meme after signing in.
+      router.push(`/login?next=${encodeURIComponent(`/g/${generationId}`)}`);
       return;
     }
     const next = state.vote === v ? 0 : v;

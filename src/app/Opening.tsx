@@ -194,7 +194,13 @@ export function Opening({
               glow="glow-green"
               light="green"
             />
+            <SmallSign href="/how" label="how to play" venue="the rules" glow="glow-cyan" light="cyan" />
           </nav>
+          {!signedIn && (
+            <p className="mt-6 max-w-sm text-center text-xs text-ink-3">
+              Look around freely. Sign in with Google when you want to create or vote.
+            </p>
+          )}
         </main>
       )}
     </>

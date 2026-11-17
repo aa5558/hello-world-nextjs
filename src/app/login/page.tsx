@@ -37,14 +37,23 @@ export default async function LoginPage(props: PageProps<"/login">) {
   const rules = (rulesData as SignupRules | null) ?? { restricted: false, domains: [] };
   const gated = rules.restricted && rules.domains.length > 0;
 
+  // Say why sign-in is needed, based on where it will take you back to.
+  const reason = next.startsWith("/create")
+    ? "Sign in to create a meme."
+    : next.startsWith("/play") || next.startsWith("/g/") || next.startsWith("/explore")
+      ? "Sign in to vote and write captions."
+      : next.startsWith("/you") || next.startsWith("/me") || next.startsWith("/profile")
+        ? "Sign in to see your backstage."
+        : "Sign in to keep going.";
+
   return (
     <main className="screen-in mx-auto flex min-h-[100svh] w-full max-w-2xl flex-col items-center justify-center gap-7 px-5 pb-12 pt-24 text-center sm:px-8">
       <p className="tube glow-green flicker-on text-xs">members only</p>
       <h1 className="word glow-pink text-6xl sm:text-8xl">
-        <Ink text="Sign in to keep going." />
+        <Ink text={reason} />
       </h1>
       <p className="rise max-w-sm text-lg text-ink-2 [animation-delay:500ms]">
-        One tap with Google. Classmates only ever see vote totals, never how you voted.
+        One tap with Google, and you&apos;ll be right back where you were. Browsing, results and Human or AI? stay open to everyone; classmates only ever see vote totals, never how you voted.
       </p>
       {error && (
         <p role="alert" className="max-w-md text-[15px] text-down-ink">
