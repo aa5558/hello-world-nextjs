@@ -172,7 +172,7 @@ export function ResultsReveal({
               <div aria-hidden className="stage-dim pointer-events-none fixed inset-0 z-0 [animation-delay:1100ms]" />
               <p className="tube glow-green relative z-10 text-[11px]">Live standings · final at midnight</p>
               <h1 className="word glow-gold relative z-10 text-5xl sm:text-7xl">This round&apos;s top captions</h1>
-              <ol aria-label="Today's top captions" className="relative z-10 grid w-full grid-cols-1 items-end gap-5 sm:grid-cols-3">
+              <ol aria-label="Today's top captions" className="relative z-10 flex w-full flex-col items-stretch gap-5 sm:flex-row sm:items-end sm:justify-center">
                 {top.map((entry, n) => (
                   <PodiumCard key={entry.id} entry={entry} slot={n} count={top.length} />
                 ))}
@@ -311,7 +311,7 @@ function PodiumCard({ entry, slot, count }: { entry: Ranked<LeaderboardEntry>; s
   // Lowest place first, the leader last; a lone leader appears right away.
   const delay = (count - 1 - slot) * 750 + 200;
   return (
-    <li className={`podium-up relative ${order}`} style={{ animationDelay: `${delay}ms` }} aria-label={`${entry.tied ? "Tied for " : ""}${ordinal(entry.place)} place`}>
+    <li className={`podium-up relative sm:w-[17rem] ${order}`} style={{ animationDelay: `${delay}ms` }} aria-label={`${entry.tied ? "Tied for " : ""}${ordinal(entry.place)} place`}>
       {place === 1 && <span aria-hidden className="spotlight" />}
       {place === 1 && <Sparkles />}
       <div className={`neon-ring ${m.ring} ${place === 1 ? "float" : ""} rounded-t-[26px] rounded-b-lg`}>
