@@ -174,7 +174,7 @@ export function ResultsReveal({
               <h1 className="word glow-gold relative z-10 text-5xl sm:text-7xl">This round&apos;s top captions</h1>
               <ol aria-label="Today's top captions" className="relative z-10 grid w-full grid-cols-1 items-end gap-5 sm:grid-cols-3">
                 {top.map((entry, n) => (
-                  <PodiumCard key={entry.id} entry={entry} slot={n} />
+                  <PodiumCard key={entry.id} entry={entry} slot={n} count={top.length} />
                 ))}
               </ol>
               {rest.length > 0 &&
@@ -303,12 +303,13 @@ export function ResultsReveal({
 
 // One podium step. 1st is tallest, ringed in moving gold light and floating
 // under a spotlight; ties share the medal for their place.
-function PodiumCard({ entry, slot }: { entry: Ranked<LeaderboardEntry>; slot: number }) {
+function PodiumCard({ entry, slot, count }: { entry: Ranked<LeaderboardEntry>; slot: number; count: number }) {
   const place = Math.min(entry.place, 3) as 1 | 2 | 3;
   const m = MEDAL[place];
   // Visual order on wide screens: 2nd, 1st, 3rd. Revealed 3rd -> 2nd -> 1st.
   const order = ["sm:order-2", "sm:order-1", "sm:order-3"][slot];
-  const delay = [1600, 650, 0][slot] + 200;
+  // Lowest place first, the leader last; a lone leader appears right away.
+  const delay = (count - 1 - slot) * 750 + 200;
   return (
     <li className={`podium-up relative ${order}`} style={{ animationDelay: `${delay}ms` }} aria-label={`${entry.tied ? "Tied for " : ""}${ordinal(entry.place)} place`}>
       {place === 1 && <span aria-hidden className="spotlight" />}
