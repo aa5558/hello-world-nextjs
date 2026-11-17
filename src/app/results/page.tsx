@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { getDailyWinner, getLeaderboard, getScoreboard } from "@/lib/battles";
-import { getChallengeDate, getDailyPrompt, msUntilNextChallenge, shiftDay } from "@/lib/captions";
+import { getLeaderboard, getScoreboard } from "@/lib/battles";
+import { getRecentChampions } from "@/lib/champions";
+import { getChallengeDate, getDailyPrompt, msUntilNextChallenge } from "@/lib/captions";
 import { getFeed } from "@/lib/feed";
 import { getDailyDrop } from "@/lib/library";
 import { createClient } from "@/lib/supabase/server";
@@ -16,17 +17,18 @@ export const metadata: Metadata = {
 // Results: the daily challenge and the leaderboard, revealed one step at a
 // time. Every number comes from the database; authors appear only where the
 // existing rules allow (your own captions, ones you voted on, finished days).
-export default async function ResultsPage() {
+export default async function ResultsPage(props: PageProps<"/results">) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const today = getChallengeDate();
-  const [{ entries, error }, { generations: photos }, winner, scoreboard, drop] = await Promise.all([
+  const [{ entries, error }, { generations: photos }, champions, scoreboard, drop] = await Promise.all([
     getLeaderboard(supabase, today, user?.id),
     getFeed(supabase, { day: today }),
-    getDailyWinner(supabase, shiftDay(today, -1)),
+    getRecentChampions(supabase, 7),
     getScoreboard(supabase),
     getDailyDrop(supabase, today),
   ]);
@@ -36,11 +38,13 @@ export default async function ResultsPage() {
   return (
     <ResultsReveal
       prompt={getDailyPrompt(today)}
+      day={today}
       msLeft={msUntilNextChallenge()}
       photosToday={photos.length}
       entries={entries}
       loadError={Boolean(error)}
-      winner={winner}
+      champions={champions}
+      startAtChampion={searchParams.show === "champion"}
       scoreboard={scoreboard}
       drop={drop ? { url: drop.url, alt: drop.altText, title: drop.title } : null}
       createHref={user ? createPath : `/login?next=${encodeURIComponent(createPath)}`}

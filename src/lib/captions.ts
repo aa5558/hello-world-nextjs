@@ -94,21 +94,34 @@ export function getDailyPrompt(day = getChallengeDate()) {
   return DAILY_PROMPTS[dayNumber % DAILY_PROMPTS.length];
 }
 
-// Milliseconds until the next challenge starts (midnight New York time).
-export function msUntilNextChallenge(now = new Date()) {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
+// When a round starts: midnight New York time on that day, as an exact
+// instant. Works out the UTC offset for that date (EST -5h or EDT -4h), so
+// the 23- and 25-hour days around daylight saving are handled correctly.
+export function roundStartsAt(day: string) {
+  const [y, m, d] = day.split("-").map(Number);
+  for (const offsetHours of [5, 4]) {
+    const t = Date.UTC(y, m - 1, d, offsetHours);
+    const local = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/New_York",
       hourCycle: "h23",
-      hour: "numeric",
-      minute: "numeric",
-      second: "numeric",
-    })
-      .formatToParts(now)
-      .map((part) => [part.type, Number(part.value)])
-  );
-  const elapsed = (parts.hour * 3600 + parts.minute * 60 + parts.second) * 1000;
-  return 86_400_000 - elapsed;
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+    }).format(new Date(t));
+    if (local.startsWith(day) && local.endsWith("00")) return t;
+  }
+  return Date.UTC(y, m - 1, d, 5);
+}
+
+// The instant the next round starts (the end of today's round).
+export function nextRoundStartsAt(now = new Date()) {
+  return roundStartsAt(shiftDay(getChallengeDate(now), 1));
+}
+
+// Milliseconds until the next round starts.
+export function msUntilNextChallenge(now = new Date()) {
+  return Math.max(0, nextRoundStartsAt(now) - now.getTime());
 }
 
 export function buildCaptionPrompt({

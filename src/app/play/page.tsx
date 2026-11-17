@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Action } from "@/app/components/ui";
+import { SampleMeme } from "@/app/components/SampleMeme";
 import { getFeed } from "@/lib/feed";
 import { getGuessRound } from "@/lib/guess";
 import { SURPRISE_HISTORY, pickSurprisePhoto } from "@/lib/surprise";
@@ -91,6 +92,11 @@ export default async function PlayPage(props: PageProps<"/play">) {
       error || !pick ? (
         error ? (
           <Empty title="Hmm." body="We couldn't load a round just now. Try again in a moment." href="/play" action="Try again" />
+        ) : generations.length === 0 ? (
+          <div className="flex flex-col items-center gap-6">
+            <h1 className="word glow-cyan text-5xl sm:text-7xl">The arena is empty.</h1>
+            <SampleMeme createHref={user ? "/create" : "/login?next=/create"} />
+          </div>
         ) : (
           <Empty
             title="All judged."

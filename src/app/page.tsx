@@ -1,3 +1,6 @@
+import { msUntilNextChallenge } from "@/lib/captions";
+import { Suspense } from "react";
+import { ChampionSign } from "./ChampionSign";
 import { createClient } from "@/lib/supabase/server";
 import { Opening } from "./Opening";
 
@@ -13,5 +16,17 @@ export default async function Home(props: PageProps<"/">) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return <Opening signedIn={Boolean(user)} skipIntro={searchParams.start === "choose"} />;
+
+  return (
+    <Opening
+      signedIn={Boolean(user)}
+      skipIntro={searchParams.start === "choose"}
+      msLeft={msUntilNextChallenge()}
+      championSign={
+        <Suspense fallback={null}>
+          <ChampionSign />
+        </Suspense>
+      }
+    />
+  );
 }

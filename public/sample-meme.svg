@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <!-- An illustrated example (not a real photo): a dorm laundry room at night. -->
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#151a3a"/><stop offset="1" stop-color="#0a0c1f"/></linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9deef"/><stop offset="1" stop-color="#8b92ad"/></linearGradient>
+    <radialGradient id="glass" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#3a3f66"/><stop offset="1" stop-color="#11132a"/></radialGradient>
+    <radialGradient id="lamp" cx="50%" cy="0%" r="80%"><stop offset="0" stop-color="#ffe9b0" stop-opacity="0.35"/><stop offset="1" stop-color="#ffe9b0" stop-opacity="0"/></radialGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="640" height="480" fill="url(#wall)"/>
+  <rect width="640" height="300" fill="url(#lamp)"/>
+  <rect y="400" width="640" height="80" fill="#07081a"/>
+  <g>
+    <!-- three dryers -->
+    <g transform="translate(40 150)">
+      <rect width="170" height="250" rx="14" fill="url(#metal)"/>
+      <rect x="18" y="16" width="134" height="26" rx="6" fill="#0c0e22"/>
+      <text x="85" y="35" font-family="monospace" font-size="16" fill="#ff3cac" text-anchor="middle">23 MIN</text>
+      <circle cx="85" cy="140" r="58" fill="#59607d"/><circle cx="85" cy="140" r="48" fill="url(#glass)"/>
+      <path d="M58 150 q14 -26 30 -6 q14 18 26 -6" stroke="#2de2ff" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.8"/>
+    </g>
+    <g transform="translate(235 150)">
+      <rect width="170" height="250" rx="14" fill="url(#metal)"/>
+      <rect x="18" y="16" width="134" height="26" rx="6" fill="#0c0e22"/>
+      <text x="85" y="35" font-family="monospace" font-size="16" fill="#ff3cac" text-anchor="middle">23 MIN</text>
+      <circle cx="85" cy="140" r="58" fill="#59607d"/><circle cx="85" cy="140" r="48" fill="url(#glass)"/>
+      <path d="M60 132 q20 22 44 2" stroke="#a3ff47" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.8"/>
+    </g>
+    <g transform="translate(430 150)">
+      <rect width="170" height="250" rx="14" fill="url(#metal)"/>
+      <rect x="18" y="16" width="134" height="26" rx="6" fill="#0c0e22"/>
+      <text x="85" y="35" font-family="monospace" font-size="16" fill="#ff3cac" text-anchor="middle">23 MIN</text>
+      <circle cx="85" cy="140" r="58" fill="#59607d"/><circle cx="85" cy="140" r="48" fill="url(#glass)"/>
+      <path d="M62 120 q30 40 50 0" stroke="#ffcf5a" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.8"/>
+    </g>
+  </g>
+  <!-- a lone sock on the floor -->
+  <path d="M300 430 q-6 -26 14 -30 l26 -2 q10 0 10 10 q0 14 -22 20 q-18 6 -28 2z" fill="#ff3cac"/>
+  <!-- neon sign on the wall -->
+  <text x="320" y="95" font-family="sans-serif" font-size="34" font-weight="700" fill="#fff" text-anchor="middle" filter="url(#g)" opacity="0.9">LAUNDRY</text>
+  <text x="320" y="95" font-family="sans-serif" font-size="34" font-weight="700" fill="#e9fbff" stroke="#2de2ff" stroke-width="1" text-anchor="middle">LAUNDRY</text>
+</svg>

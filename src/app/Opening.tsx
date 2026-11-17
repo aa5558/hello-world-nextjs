@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, type ReactNode } from "react";
 import { Menu } from "@/app/components/Menu";
 import { LIGHT, setRoomLight, Tilt } from "@/app/components/Tilt";
 import { Glove } from "@/app/components/Glove";
+import { RoundClock } from "@/app/components/RoundClock";
 import { play, primeAudio } from "@/lib/sound";
 
 type Stage = "door" | "inside";
@@ -34,9 +35,13 @@ const SPARKS = Array.from({ length: 16 }, (_, i) => {
 export function Opening({
   signedIn,
   skipIntro,
+  msLeft,
+  championSign,
 }: {
   signedIn: boolean;
   skipIntro: boolean;
+  msLeft: number;
+  championSign: ReactNode;
 }) {
   const [stage, setStage] = useState<Stage>(skipIntro ? "inside" : "door");
   const [entering, setEntering] = useState(false);
@@ -135,7 +140,12 @@ export function Opening({
         <main
           className={`${entering ? "" : "screen-in"} flex min-h-[100svh] flex-col items-center justify-center px-5 pb-12 pt-24 [perspective:1400px]`}
         >
-          <p className="tube glow-violet mb-8 text-xs sm:mb-12">Pick a door</p>
+          <div className="mb-8 flex flex-col items-center gap-2 sm:mb-12">
+            <p className="tube glow-violet text-xs">Pick a door</p>
+            <Link href="/results" className="chip-neon glow-cyan" aria-label="This round's countdown and standings">
+              <RoundClock initialMs={msLeft} size="sm" />
+            </Link>
+          </div>
           <div className="grid w-full max-w-5xl gap-5 sm:grid-cols-2 sm:gap-8">
             <Entrance
               href={createHref}
@@ -158,6 +168,7 @@ export function Opening({
               delay={200}
             />
           </div>
+          {championSign}
           <nav
             aria-label="More"
             className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:mt-14"

@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Countdown } from "@/app/components/Countdown";
+import { RoundClock } from "@/app/components/RoundClock";
+import { SampleMeme } from "@/app/components/SampleMeme";
 import { Sparkles } from "@/app/components/Sparkles";
+import { WinnerReveal } from "@/app/components/WinnerReveal";
 import { Action, Dots, Ink, Quiet } from "@/app/components/ui";
-import { CueOnMount } from "@/app/components/CueOnMount";
-import type { DailyWinner, LeaderboardEntry, Scoreboard } from "@/lib/battles";
+import type { LeaderboardEntry, Scoreboard } from "@/lib/battles";
+import { prettyDay, type Champion } from "@/lib/champions";
+import { ordinal, podium, rankEntries, type Ranked } from "@/lib/ranking";
 
 const STAGES = ["intro", "today", "top", "champ", "score"] as const;
 type Stage = (typeof STAGES)[number];
@@ -17,35 +20,59 @@ function Author({ entry }: { entry: LeaderboardEntry }) {
   return <span className="text-human-ink">{entry.reveal.isMine ? "yours" : `written by ${entry.reveal.authorName ?? "a classmate"}`}</span>;
 }
 
+function Votes({ e }: { e: { upvotes: number; downvotes: number; score: number } }) {
+  return (
+    <span className="tabular-nums" aria-label={`${e.upvotes} upvotes, ${e.downvotes} downvotes, net ${e.score}`}>
+      ▲ {e.upvotes} · ▼ {e.downvotes} · <span className="text-white">{e.score > 0 ? `+${e.score}` : e.score}</span>
+    </span>
+  );
+}
+
+const MEDAL = {
+  1: { ring: "ring-gold", glow: "glow-gold", label: "gold", height: "sm:min-h-[21rem]" },
+  2: { ring: "ring-silver", glow: "glow-cyan", label: "silver", height: "sm:min-h-[17rem]" },
+  3: { ring: "ring-bronze", glow: "glow-pink", label: "bronze", height: "sm:min-h-[14rem]" },
+} as const;
+
 export function ResultsReveal({
   prompt,
+  day,
   msLeft,
   photosToday,
   entries,
   loadError,
-  winner,
+  champions,
   scoreboard,
   drop,
   createHref,
+  startAtChampion = false,
 }: {
+  startAtChampion?: boolean;
   prompt: string;
+  day: string;
   msLeft: number;
   photosToday: number;
   entries: LeaderboardEntry[];
   loadError: boolean;
-  winner: DailyWinner | null;
+  champions: Champion[];
   scoreboard: Scoreboard;
   drop: { url: string; alt: string; title: string } | null;
   createHref: string;
 }) {
-  const [i, setI] = useState(0);
+  // ?show=champion (the "last round's champion" sign) opens on the
+  // ceremony; that's the person's own choice, so it plays right away.
+  const [i, setI] = useState(startAtChampion && champions.length ? 3 : 0);
   const [showAll, setShowAll] = useState(false);
+  const [revealing, setRevealing] = useState<Champion | null>(startAtChampion ? (champions[0] ?? null) : null);
+  const [revealedOnce, setRevealedOnce] = useState(startAtChampion);
   const stage: Stage = STAGES[i];
   const next = useCallback(() => setI((n) => Math.min(n + 1, STAGES.length - 1)), []);
   const back = useCallback(() => setI((n) => Math.max(n - 1, 0)), []);
+  const latest = champions[0] ?? null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (revealing) return;
       if ((e.target as HTMLElement).closest("input, textarea, button, a")) return;
       if (e.key === "ArrowRight" || e.key === " ") {
         e.preventDefault();
@@ -55,24 +82,35 @@ export function ResultsReveal({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [next, back]);
+  }, [next, back, revealing]);
 
-  const voted = entries.filter((e) => e.upvotes + e.downvotes > 0);
-  const top = voted.slice(0, 3);
+  // Arriving at the champion step (by choice, here on Results) plays the
+  // ceremony once; after that it's on the replay buttons.
+  function goTo(n: number) {
+    setI(n);
+    if (STAGES[n] === "champ" && latest && !revealedOnce) {
+      setRevealedOnce(true);
+      setRevealing(latest);
+    }
+  }
+
+  const ranked = rankEntries(entries);
+  const top = podium(ranked);
+  const rest = ranked.filter((r) => !top.includes(r));
   const nextLabel: Record<Stage, string> = {
     intro: "Show me",
     today: "Who's on top?",
-    top: "And yesterday?",
+    top: "Last round's champion",
     champ: "Humans vs AI",
     score: "",
   };
 
   return (
-    <main className="mx-auto flex min-h-[100svh] w-full max-w-3xl flex-col items-center px-5 pb-12 pt-20 text-center sm:px-8 sm:pt-24">
+    <main className="mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col items-center px-5 pb-12 pt-20 text-center sm:px-8 sm:pt-24">
       <div className="flex h-10 w-full items-center justify-between">
         {i > 0 ? <Quiet onClick={back}>← back</Quiet> : <span />}
         <Dots count={STAGES.length} current={i} label="Results" />
-        {i < STAGES.length - 1 ? <Quiet onClick={() => setI(STAGES.length - 1)}>skip to the end</Quiet> : <span />}
+        {i < STAGES.length - 1 ? <Quiet onClick={() => goTo(STAGES.length - 1)}>skip to the end</Quiet> : <span />}
       </div>
 
       <section key={stage} aria-live="polite" className="screen-in flex w-full flex-1 flex-col items-center justify-center gap-6 py-8 sm:gap-8">
@@ -82,133 +120,130 @@ export function ResultsReveal({
           </h1>
         )}
 
+        {/* The live round: its prompt and the clock to the bell. */}
         {stage === "today" && (
           <>
-            <p className="tube glow-cyan text-xs">
-              Tonight&apos;s prompt · <Countdown initialMs={msLeft} /> left
+            <p className="tube glow-green text-[11px]">
+              <span className="mr-2 inline-block h-2 w-2 rounded-full bg-green align-middle shadow-[0_0_10px_#a3ff47]" />
+              {prettyDay(day)} round · live now
             </p>
-            <h1 className="word glow-cyan text-6xl sm:text-8xl">
+            <h1 className="word glow-cyan text-5xl sm:text-7xl">
               <Ink text={prompt} />
             </h1>
+            <RoundClock initialMs={msLeft} />
             {drop && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={drop.url} alt={drop.alt} className="frame glow-gold rise max-h-[24svh] object-cover [animation-delay:300ms]" />
+              <img src={drop.url} alt={drop.alt} className="frame glow-gold rise max-h-[20svh] object-cover [animation-delay:300ms]" />
             )}
-            <p className="rise text-lg text-ink-2 [animation-delay:400ms]">
-              {photosToday} {photosToday === 1 ? "photo" : "photos"} · {entries.length} {entries.length === 1 ? "caption" : "captions"} so far. The top
-              caption at midnight wins the day.
+            <p className="rise text-ink-2 [animation-delay:400ms]">
+              {photosToday} {photosToday === 1 ? "photo" : "photos"} · {entries.length} {entries.length === 1 ? "caption" : "captions"} in this round so far.
             </p>
             <p className="rise flex gap-4 text-sm [animation-delay:500ms]">
-              <Quiet href={createHref}>{drop ? "make one with today's photo" : "make one for today"}</Quiet>
-              <Quiet href="/play">play</Quiet>
+              <Quiet href={createHref}>{drop ? "make one with today's photo" : "make one for this round"}</Quiet>
+              <Quiet href="/play">vote in the arena</Quiet>
             </p>
           </>
         )}
 
+        {/* The standings: a podium for the top three, then everyone else. */}
         {stage === "top" &&
           (loadError ? (
-            <p className="text-lg text-ink-2">We couldn&apos;t load tonight&apos;s captions just now.</p>
+            <p className="text-lg text-ink-2">We couldn&apos;t load this round&apos;s captions just now.</p>
+          ) : entries.length === 0 ? (
+            <>
+              <h1 className="word glow-violet text-5xl sm:text-7xl">No submissions yet.</h1>
+              <p className="max-w-md text-ink-2">This round is wide open. Here&apos;s how it works:</p>
+              <SampleMeme createHref={createHref} />
+            </>
           ) : top.length === 0 ? (
             <>
-              {/* An empty, dark stage: the podiums wait unlit. */}
-              <div aria-hidden className="flex items-end gap-3 opacity-40">
-                {[96, 140, 72].map((h, n) => (
-                  <span key={n} className="panel w-20 rounded-t-2xl sm:w-28" style={{ height: h }} />
-                ))}
-              </div>
-              <h1 className="word glow-violet text-6xl sm:text-8xl">
+              <h1 className="word glow-violet text-5xl sm:text-7xl">
                 <Ink text="Nobody's voted yet." />
               </h1>
               <p className="max-w-md text-lg text-ink-2">
-                {entries.length > 0
-                  ? `${entries.length} ${entries.length === 1 ? "caption is" : "captions are"} on stage tonight, all tied at zero. One vote changes that.`
-                  : "No captions tonight yet. The first meme gets the whole room's attention."}
+                {entries.length} {entries.length === 1 ? "caption is" : "captions are"} in this round, all tied at zero. One vote changes that.
               </p>
-              <Action href={entries.length > 0 ? "/play" : createHref} tone="cyan">
-                {entries.length > 0 ? "Go vote" : "Make the first one"}
+              <Action href="/play" tone="cyan">
+                Go vote
               </Action>
             </>
           ) : (
             <>
-              <CueOnMount cue="reveal" delay={1500} />
               <div aria-hidden className="stage-dim pointer-events-none fixed inset-0 z-0 [animation-delay:1100ms]" />
-              <h1 className="word glow-gold relative z-10 text-5xl sm:text-7xl">Tonight&apos;s top captions</h1>
-              {/* Podiums: silver left, gold centre (tallest), bronze right.
-                  Revealed 3rd, then 2nd, then (after the lights dim) 1st. */}
-              <ol aria-label="Today's top captions" className="relative z-10 grid w-full max-w-4xl grid-cols-1 items-end gap-4 sm:grid-cols-3">
-                {top.map((entry, rank) => {
-                  const order = ["sm:order-2", "sm:order-1", "sm:order-3"][rank];
-                  const height = ["sm:min-h-[19rem]", "sm:min-h-[15rem]", "sm:min-h-[12rem]"][rank];
-                  const glow = ["glow-gold", "glow-cyan", "glow-pink"][rank];
-                  const medal = ["gold", "silver", "bronze"][rank];
-                  const delay = [1600, 650, 0][rank] + 200;
-                  return (
-                    <li key={entry.id} className={`podium-up relative ${order}`} style={{ animationDelay: `${delay}ms` }}>
-                      {rank === 0 && <span aria-hidden className="spotlight" />}
-                      {rank === 0 && <Sparkles />}
-                      <div className={`panel ${rank === 0 ? "lit" : ""} ${glow} relative flex flex-col items-center gap-3 rounded-t-[26px] rounded-b-lg px-4 pb-5 pt-5 text-center ${height}`}>
-                        <span aria-label={`Rank ${rank + 1}`} className={`medal-${rank + 1} h-7 w-7 rounded-full shadow-[0_0_18px_rgba(255,255,255,0.35)]`} />
-                        <span className={`tube ${glow} text-[10px]`}>{medal}</span>
-                        <Link href={`/g/${entry.generationId}`} aria-label="Open this meme" className="shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={entry.imageUrl} alt="" className="h-16 w-16 rounded-2xl object-cover" />
-                        </Link>
-                        <span className="text-[16px] leading-snug text-white">“{entry.text}”</span>
-                        <span className="text-xs">
-                          <Author entry={entry} />
-                        </span>
-                        <span className={`tube ${glow} mt-auto text-xl tabular-nums`}>{entry.score > 0 ? `+${entry.score}` : entry.score}</span>
-                      </div>
-                    </li>
-                  );
-                })}
+              <p className="tube glow-green relative z-10 text-[11px]">Live standings · final at midnight</p>
+              <h1 className="word glow-gold relative z-10 text-5xl sm:text-7xl">This round&apos;s top captions</h1>
+              <ol aria-label="Today's top captions" className="relative z-10 grid w-full grid-cols-1 items-end gap-5 sm:grid-cols-3">
+                {top.map((entry, n) => (
+                  <PodiumCard key={entry.id} entry={entry} slot={n} />
+                ))}
               </ol>
-              <p className="tube glow-gold rise relative z-10 text-lg sm:text-2xl" style={{ animationDelay: "2500ms" }}>
-                The people have spoken.
-              </p>
-              {entries.length > top.length &&
+              {rest.length > 0 &&
                 (showAll ? (
-                  <ol aria-label="Every caption today" start={top.length + 1} className="relative z-10 flex w-full max-w-xl flex-col gap-1 text-left">
-                    {entries.slice(top.length).map((entry, n) => (
+                  <ol aria-label="Every caption today" className="relative z-10 flex w-full max-w-2xl flex-col gap-1 text-left">
+                    {rest.map((entry, n) => (
                       <li key={entry.id} className="rise flex items-baseline gap-3 border-b border-line px-2 py-3" style={{ animationDelay: `${n * 30}ms` }}>
-                        <span className="tube glow-violet w-6 shrink-0 text-xs tabular-nums">{top.length + n + 1}</span>
+                        <span className="tube glow-violet w-10 shrink-0 text-xs tabular-nums">{entry.tied ? `T-${entry.place}` : entry.place}</span>
                         <Link href={`/g/${entry.generationId}`} className="min-w-0 flex-1 text-[15px] text-white hover:text-cyan">
                           “{entry.text}”
                         </Link>
-                        <span className="shrink-0 text-sm tabular-nums text-ink-2">{entry.score}</span>
+                        <span className="shrink-0 text-xs text-ink-2">
+                          <Votes e={entry} />
+                        </span>
                       </li>
                     ))}
                   </ol>
                 ) : (
                   <Quiet onClick={() => setShowAll(true)} className="relative z-10">
-                    see all {entries.length} captions tonight
+                    see all {entries.length} captions in this round
                   </Quiet>
                 ))}
+              <p className="relative z-10 text-xs text-ink-3">Ties: same net score and upvotes share a place. At the bell, the earlier post wins a tie.</p>
             </>
           ))}
 
+        {/* Champions of finished rounds, with the ceremony on replay. */}
         {stage === "champ" &&
-          (winner ? (
+          (latest ? (
             <>
-              <p className="tube glow-gold text-xs">Yesterday&apos;s winner{winner.dailyPrompt ? ` · “${winner.dailyPrompt}”` : ""}</p>
-              <Link href={`/g/${winner.generationId}`} className="rise relative">
-                <Sparkles />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={winner.imageUrl} alt="" className="frame glow-gold max-h-[30svh] object-contain" />
-              </Link>
-              <p className="word glow-gold text-4xl sm:text-6xl">
-                <Ink text={`“${winner.text}”`} delay={300} step={50} />
-              </p>
-              <p className="rise text-lg text-ink-2 [animation-delay:900ms]">
-                {winner.authorType === "human" ? `${winner.authorName ?? "A classmate"} beat the AI` : "The AI took the crown"} · +{winner.score}
-              </p>
+              <p className="tube glow-gold text-[11px]">Last round&apos;s champion · {prettyDay(latest.day)}</p>
+              <ChampionCard champion={latest} />
+              <Action onClick={() => setRevealing(latest)} tone="gold">
+                Replay the winner reveal
+              </Action>
+              {champions.length > 1 && (
+                <div className="w-full max-w-2xl">
+                  <p className="tube glow-violet mb-3 text-[11px]">Past rounds</p>
+                  <ul className="flex flex-col gap-2 text-left">
+                    {champions.slice(1).map((c) => (
+                      <li key={c.day} className="panel flex items-center gap-3 rounded-[18px] p-2.5 pr-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.imageUrl} alt="" className="h-12 w-12 rounded-xl object-cover" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[15px] text-white">“{c.text}”</span>
+                          <span className="block text-xs text-ink-3">
+                            {prettyDay(c.day)} · {c.authorType === "ai" ? "the AI" : c.authorName ?? "a classmate"} · +{c.score}
+                          </span>
+                        </span>
+                        <button type="button" onClick={() => setRevealing(c)} className="chip-neon glow-gold shrink-0 text-xs">
+                          watch
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           ) : (
             <>
-              <h1 className="word glow-violet text-6xl sm:text-8xl">
-                <Ink text="No winner yesterday." />
+              <h1 className="word glow-violet text-5xl sm:text-7xl">
+                <Ink text="No champion last round." />
               </h1>
-              <p className="max-w-sm text-lg text-ink-2">Nobody upvoted a caption in time. Don&apos;t let that happen today.</p>
+              <p className="max-w-md text-lg text-ink-2">
+                A round needs at least one upvoted caption before the bell to crown a winner. None of the last seven rounds had one yet.
+              </p>
+              <Action href="/play" tone="cyan">
+                Vote in this round
+              </Action>
             </>
           ))}
 
@@ -247,17 +282,75 @@ export function ResultsReveal({
                 </p>
               </>
             )}
-            <Action href="/play" tone="cyan">To the arena</Action>
+            <Action href="/play" tone="cyan">
+              To the arena
+            </Action>
             <Quiet href="/?start=choose">home</Quiet>
           </>
         )}
       </section>
 
       {stage !== "score" && (
-        <Action onClick={next} tone="gold" className="relative z-10">
+        <Action onClick={() => goTo(i + 1)} tone="gold" className="relative z-10">
           {nextLabel[stage]}
         </Action>
       )}
+
+      {revealing && <WinnerReveal champion={revealing} onClose={() => setRevealing(null)} />}
     </main>
+  );
+}
+
+// One podium step. 1st is tallest, ringed in moving gold light and floating
+// under a spotlight; ties share the medal for their place.
+function PodiumCard({ entry, slot }: { entry: Ranked<LeaderboardEntry>; slot: number }) {
+  const place = Math.min(entry.place, 3) as 1 | 2 | 3;
+  const m = MEDAL[place];
+  // Visual order on wide screens: 2nd, 1st, 3rd. Revealed 3rd -> 2nd -> 1st.
+  const order = ["sm:order-2", "sm:order-1", "sm:order-3"][slot];
+  const delay = [1600, 650, 0][slot] + 200;
+  return (
+    <li className={`podium-up relative ${order}`} style={{ animationDelay: `${delay}ms` }} aria-label={`${entry.tied ? "Tied for " : ""}${ordinal(entry.place)} place`}>
+      {place === 1 && <span aria-hidden className="spotlight" />}
+      {place === 1 && <Sparkles />}
+      <div className={`neon-ring ${m.ring} ${place === 1 ? "float" : ""} rounded-t-[26px] rounded-b-lg`}>
+        <div className={`panel ${place === 1 ? "lit" : ""} ${m.glow} relative flex flex-col items-center gap-3 rounded-t-[26px] rounded-b-lg px-4 pb-5 pt-6 text-center ${m.height}`}>
+          <span className={`medal-${place} h-8 w-8 rounded-full`} aria-hidden />
+          <span className={`tube ${m.glow} text-[11px]`}>
+            {entry.tied ? "tied · " : ""}
+            {ordinal(entry.place)} · {m.label}
+          </span>
+          <Link href={`/g/${entry.generationId}`} aria-label="Open this meme" className="shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={entry.imageUrl} alt="" className={`${place === 1 ? "h-24 w-24" : "h-16 w-16"} rounded-2xl object-cover`} />
+          </Link>
+          <span className={`${place === 1 ? "text-[19px]" : "text-[16px]"} leading-snug text-white`}>“{entry.text}”</span>
+          <span className="text-xs">
+            <Author entry={entry} />
+          </span>
+          <span className={`tube ${m.glow} mt-auto text-sm`}>
+            <Votes e={entry} />
+          </span>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function ChampionCard({ champion }: { champion: Champion }) {
+  return (
+    <div className="neon-ring ring-gold float relative w-full max-w-md rounded-[28px]">
+      <div className="frame glow-gold flex flex-col items-center gap-3 rounded-[28px] px-5 pb-6 pt-7 text-center">
+        <span className="fight glow-gold text-sm">Champion</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={champion.imageUrl} alt="" className="max-h-[24svh] w-auto max-w-full rounded-[14px] object-contain" />
+        <p className="word glow-gold text-3xl leading-tight sm:text-4xl">“{champion.text}”</p>
+        <p className="text-white">{champion.authorType === "ai" ? "The AI (Gemini)" : champion.authorName ?? "A classmate"}</p>
+        <p className="tube glow-cyan text-xs">
+          <Votes e={champion} />
+        </p>
+        {champion.prompt && <p className="text-xs text-ink-3">Prompt: “{champion.prompt}”</p>}
+      </div>
+    </div>
   );
 }

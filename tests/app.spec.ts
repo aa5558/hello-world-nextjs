@@ -1,7 +1,8 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { sessionCookie } from "../../morningside-memes-admin/tests/mock/session.mjs";
 import { REGULAR_ID, USERS } from "../../morningside-memes-admin/tests/mock/seed.mjs";
-import { buildCaptionPrompt, getDailyPrompt } from "../src/lib/captions";
+import { buildCaptionPrompt, getDailyPrompt, msUntilNextChallenge, nextRoundStartsAt, roundStartsAt } from "../src/lib/captions";
+import { rankEntries } from "../src/lib/ranking";
 
 const MOCK = "http://localhost:54399";
 const MAYA = USERS[2]; // owns several seeded posts
@@ -134,13 +135,19 @@ test.describe("signed out", () => {
     await expect(
       page.getByRole("list", { name: "Today's top captions" }).or(page.getByRole("heading", { name: "Nobody's voted yet." }))
     ).toBeVisible();
-    await page.getByRole("button", { name: /And yesterday/ }).click();
-    await expect(page.getByText(/Yesterday.s winner|No winner yesterday/).first()).toBeVisible();
+    await page.getByRole("button", { name: /Last round's champion/ }).click();
+    // If there is a champion, the ceremony plays; skip and close it.
+    const reveal = page.getByRole("dialog", { name: "Winner reveal" });
+    if (await reveal.count()) {
+      await reveal.getByRole("button", { name: "Skip" }).click();
+      await reveal.getByRole("button", { name: "Back to the results" }).click();
+    }
+    await expect(page.getByText(/Last round.s champion|No champion last round/).first()).toBeVisible();
     await page.getByRole("button", { name: /Humans vs AI/ }).click();
     await expect(page.getByText("Humans vs AI · all time")).toBeVisible();
     // Back works, and so does skipping.
     await page.getByRole("button", { name: "← back" }).click();
-    await expect(page.getByText(/Yesterday.s winner|No winner yesterday/).first()).toBeVisible();
+    await expect(page.getByText(/Last round.s champion|No champion last round/).first()).toBeVisible();
     await page.getByRole("button", { name: "skip to the end" }).click();
     await expect(page.getByText("Humans vs AI · all time")).toBeVisible();
   });
@@ -742,5 +749,134 @@ test.describe("caption wars entrance", () => {
     });
     expect(covered).toBe(true);
     await context.close();
+  });
+});
+
+test.describe("competition (PM feedback)", () => {
+  test("rounds follow New York midnights exactly, including daylight-saving days", () => {
+    expect(nextRoundStartsAt(new Date("2026-11-16T22:00:00Z"))).toBe(Date.parse("2026-11-17T05:00:00Z"));
+    expect(nextRoundStartsAt(new Date("2026-07-01T12:00:00Z"))).toBe(Date.parse("2026-07-02T04:00:00Z"));
+    expect((roundStartsAt("2026-11-02") - roundStartsAt("2026-11-01")) / 3.6e6).toBe(25);
+    expect((roundStartsAt("2026-03-09") - roundStartsAt("2026-03-08")) / 3.6e6).toBe(23);
+    expect(msUntilNextChallenge(new Date("2026-11-17T04:59:55Z"))).toBe(5000);
+  });
+
+  test("ties share a place; standings use net score, then upvotes", () => {
+    const r = rankEntries([
+      { id: "a", score: 3, upvotes: 4, downvotes: 1 },
+      { id: "b", score: 5, upvotes: 5, downvotes: 0 },
+      { id: "c", score: 3, upvotes: 4, downvotes: 1 },
+      { id: "d", score: 3, upvotes: 3, downvotes: 0 },
+    ]);
+    expect(r.map((x) => [x.id, x.place, x.tied])).toEqual([["b", 1, false], ["a", 2, true], ["c", 2, true], ["d", 4, false]]);
+  });
+
+  test("the round clock shows HH:MM:SS to the real next round, and rings in the new round at zero", async ({ page }) => {
+    await page.goto("/results");
+    await page.getByRole("button", { name: /Show me/ }).click();
+    const timer = page.getByRole("timer");
+    await expect(timer).toContainText("Next round starts in");
+    const text = (await timer.locator(".round-clock").innerText()).replace(/\s/g, "");
+    const [h, m, s] = text.split(":").map(Number);
+    const shown = (h * 3600 + m * 60 + s) * 1000;
+    expect(Math.abs(shown - msUntilNextChallenge())).toBeLessThan(5000);
+
+    // Three seconds before a New York midnight (the browser's clock only).
+    await page.clock.install({ time: new Date("2026-11-17T04:59:57Z") });
+    await page.goto("/results");
+    await page.getByRole("button", { name: /Show me/ }).click();
+    await expect(page.getByRole("timer")).toContainText("Next round starts in");
+    await page.clock.runFor(5000);
+    await expect(page.getByText("New round!")).toBeVisible();
+  });
+
+  test("top captions: ties share the podium place, with vote counts shown", async ({ page }) => {
+    const top = await sql<{ id: string; upvotes: number; downvotes: number }>(
+      `select c.id, c.upvotes, c.downvotes from public.captions c join public.generations g on g.id = c.generation_id
+        where g.challenge_date = (now() at time zone 'America/New_York')::date order by c.score desc, c.upvotes desc limit 2`
+    );
+    expect(top.length).toBe(2);
+    try {
+      await sql(`update public.captions set upvotes = 40, downvotes = 2 where id = any($1)`, [top.map((t) => t.id)]);
+      await page.goto("/results");
+      await page.getByRole("button", { name: /Show me/ }).click();
+      await page.getByRole("button", { name: /Who's on top/ }).click();
+      const podium = page.getByRole("list", { name: "Today's top captions" });
+      await expect(podium.getByRole("listitem", { name: "Tied for 1st place" })).toHaveCount(2);
+      await expect(podium.getByLabel("40 upvotes, 2 downvotes, net 38").first()).toBeVisible();
+    } finally {
+      for (const t of top) await sql(`update public.captions set upvotes = $2, downvotes = $3 where id = $1`, [t.id, t.upvotes, t.downvotes]);
+    }
+  });
+
+  test("the winner reveal: real finalized winner, skippable, replayable, and only for finished rounds", async ({ page }) => {
+    // The most recent finished round with a winner, straight from the database.
+    const [w] = await sql<{ text: string; day: string }>(
+      `select w.text, d::date::text as day from generate_series(1, 7) as n
+         cross join lateral (select ((now() at time zone 'America/New_York')::date - n) as d) dd
+         cross join lateral public.daily_winner(dd.d) w
+       order by d desc limit 1`
+    );
+    test.skip(!w, "no finished round with votes in the seed");
+    await page.goto("/results");
+    await page.getByRole("button", { name: /Show me/ }).click();
+    await page.getByRole("button", { name: /Who's on top/ }).click();
+    await page.getByRole("button", { name: /Last round's champion/ }).click();
+    const reveal = page.getByRole("dialog", { name: "Winner reveal" });
+    await expect(reveal.getByText("The votes are in…")).toBeVisible();
+    await expect(reveal.getByText("And the winner is…")).toBeVisible();
+    await expect(reveal.getByText("Champion", { exact: true })).toBeVisible({ timeout: 6000 });
+    await expect(reveal.getByRole("heading", { name: `“${w.text}”` })).toBeVisible();
+    await expect(reveal.getByText(/\+\d+ net · \d+ upvotes?/)).toBeVisible();
+    // Only finished rounds are revealed: the label is that round's date, not today's.
+    const todayLabel = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" }).format(new Date());
+    await expect(reveal.getByText(new RegExp(`^${todayLabel} round`))).toHaveCount(0);
+    await reveal.getByRole("button", { name: "Back to the results" }).click();
+    await expect(reveal).toHaveCount(0);
+    // Replay, and skip straight to the champion.
+    await page.getByRole("button", { name: /Replay the winner reveal/ }).click();
+    await page.getByRole("dialog", { name: "Winner reveal" }).getByRole("button", { name: "Skip" }).click();
+    await expect(page.getByRole("dialog", { name: "Winner reveal" }).getByText("Champion", { exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "Winner reveal" })).toHaveCount(0);
+    // The home sign opens the ceremony directly.
+    await page.goto("/?start=choose");
+    await page.getByRole("link", { name: /Latest champion/ }).click();
+    await expect(page.getByRole("dialog", { name: "Winner reveal" })).toBeVisible();
+  });
+
+  test("with reduced motion the reveal shows the champion immediately", async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/results?show=champion");
+    const reveal = page.getByRole("dialog", { name: "Winner reveal" });
+    test.skip((await reveal.count()) === 0, "no champion in the seed");
+    await expect(reveal.getByText("Champion", { exact: true })).toBeVisible({ timeout: 1000 });
+    await context.close();
+  });
+
+  test("an empty round shows a labelled example (not saved, not ranked) that disappears with real submissions", async ({ page, context }) => {
+    await signIn(context, MAYA);
+    const ids = (await sql<{ id: string }>(`select id from public.generations where challenge_date = (now() at time zone 'America/New_York')::date`)).map((r) => r.id);
+    const [{ n: before }] = await sql<{ n: number }>(`select count(*)::int n from public.captions`);
+    try {
+      await sql(`update public.generations set challenge_date = challenge_date - 30 where id = any($1)`, [ids]);
+      await page.goto("/results");
+      await page.getByRole("button", { name: /Show me/ }).click();
+      await page.getByRole("button", { name: /Who's on top/ }).click();
+      const example = page.getByRole("region", { name: "Example meme" });
+      await expect(example.getByText("Example", { exact: true })).toBeVisible();
+      await expect(example.getByText("Think you can do better?")).toBeVisible();
+      await expect(example.getByRole("link", { name: /Create your caption/ })).toHaveAttribute("href", /\/create/);
+      await expect(page.getByRole("list", { name: "Today's top captions" })).toHaveCount(0);
+      const [{ n: during }] = await sql<{ n: number }>(`select count(*)::int n from public.captions`);
+      expect(during).toBe(before); // the example is never saved
+    } finally {
+      await sql(`update public.generations set challenge_date = challenge_date + 30 where id = any($1)`, [ids]);
+    }
+    await page.reload();
+    await page.getByRole("button", { name: /Show me/ }).click();
+    await page.getByRole("button", { name: /Who's on top/ }).click();
+    await expect(page.getByRole("region", { name: "Example meme" })).toHaveCount(0);
   });
 });

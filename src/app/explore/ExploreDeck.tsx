@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Sparkles } from "@/app/components/Sparkles";
 import { Quiet, Sheet, SheetItem } from "@/app/components/ui";
 import { Tilt } from "@/app/components/Tilt";
+import { SampleMeme } from "@/app/components/SampleMeme";
 import { play } from "@/lib/sound";
 import { deleteCaption, editCaption, submitCaption, type CaptionFormState } from "@/app/captions/actions";
 import { deletePost, updatePostContext } from "@/app/posts/actions";
@@ -90,11 +90,8 @@ export function ExploreDeck({
   if (!item) {
     return (
       <div className="flex flex-col items-center gap-6">
-        <h1 className="word glow-violet text-6xl sm:text-8xl">The gallery is empty.</h1>
-        <p className="text-lg text-ink-2">Be the first. It takes about a minute.</p>
-        <Link href={emptyHref} className="btn-neon glow-pink">
-          Make one <span aria-hidden>→</span>
-        </Link>
+        <h1 className="word glow-violet text-5xl sm:text-7xl">The gallery is empty.</h1>
+        <SampleMeme createHref={emptyHref} compact />
       </div>
     );
   }
